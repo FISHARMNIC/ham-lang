@@ -1,0 +1,1 @@
+as --32 test.s -o out.o

@@ -1,0 +1,21 @@
+functions:
+=====typed functions=====
+
+    * typed parameters and return
+<@i16 a, @i32 b> @i8 function myFunction;
+    return {@i8 a + b};
+};
+
+    * typed return only
+@i8 function myFuncitonNoP;
+    return 123;
+};
+
+=====normal functions=====
+function easyFunc;
+    return;
+};
+
+<a,b> function easyFunc2;
+    return;
+};
