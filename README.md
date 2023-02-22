@@ -29,7 +29,7 @@ function main;
     put_int(sum(sum(number_small,number_auto),21));
 };
 ```
----Running---
+---Running---  
 Compile to Assembly using `main.js`
 Compile and run to binary using `run.sh`
 * Note that the shell script is meant for macOS using LIMA VM
