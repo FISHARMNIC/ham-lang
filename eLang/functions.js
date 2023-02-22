@@ -1,7 +1,7 @@
 var autoLabel = 0;
 var dummyRegister = "c"
 global.userFunctions = {
-    put_int: {autoReturn: true, returnType: types.i32, parameters: {_: types.i32}}
+    put_int: { autoReturn: true, returnType: types.i32, parameters: { _: types.i32 } }
 }
 global.userFunctionArr = []
 global.inFunction = false
@@ -48,8 +48,7 @@ function formatRegister(letter, bits, pointer = false, low = true) {
     }
 }
 
-function formatRegisterObj(letter, type, low = true)
-{
+function formatRegisterObj(letter, type, low = true) {
     return formatRegister(letter, type.bits, type.pointer, low)
 }
 
@@ -60,6 +59,7 @@ function generateAutoLabel() {
 function tempLabel(bits) {
     bits = String(bits)
     var str = `_TEMP${bits}_${tempLabels[bits]++}_`;
+    variableList[str] = {bits, pointer: false}
     if (tempLabels[bits] > highestTempLabel[bits] - 1) highestTempLabel[bits] = tempLabels[bits]
     return str;
 }
@@ -107,7 +107,7 @@ function declareFunction(line) {
             }
             index++
         }
-        
+
     }
     else if (ftype == 2) {
 
@@ -121,22 +121,21 @@ function declareFunction(line) {
         `_shift_stack_right_`,
     )
     // pop into parameters
-    Object.entries(parameters).reverse().forEach(x => 
-        {
-            var name = x[0];
-            var type = x[1];
-            asm.text.push(
-                `pop ${formatRegister('a', 32)}`,
-                `mov ${name}, ${formatRegisterObj('a', type)}`
-            )
-        })
+    Object.entries(parameters).reverse().forEach(x => {
+        var name = x[0];
+        var type = x[1];
+        asm.text.push(
+            `pop ${formatRegister('a', 32)}`,
+            `mov ${name}, ${formatRegisterObj('a', type)}`
+        )
+    })
     userFunctionArr.push(fname)
     userFunctions[fname] = {
         autoReturn, // for end of function return something
         returnType,
         parameters
     }
-    bracketStack.push({type: "function", data: {}})
+    bracketStack.push({ type: "function", data: {} })
 }
 
 function mostRecentFunction() {
@@ -159,10 +158,21 @@ function formatFunctionLocal(name) {
     return `_${userFunctionArr.at(-1)}_${name}_`
 }
 
-function pushParameter(fname, parameterIndex, value)
-{
+function pushParameter(fname, parameterIndex, value) {
     console.log(value)
-    var type = Object.values(userFunctions[fname].parameters)[parameterIndex]
+    
+    var type = types.i32
+    if(parseInt(value) != value)
+    {
+        if(Object.keys(functionLocals).includes(formatFunctionLocal(value)))
+        {
+            type = functionsLocals[formatFunctionLocal(value)]
+        } else if (Object.keys(variableList).includes(value))
+        {
+            type = variableList[value]
+        }
+    }
+
     //twoStepLoad({destination: formatRegister(dummyRegister, type), source: value, type})
     asm.text.push(
         `mov ${formatRegisterObj(dummyRegister, type)}, ${value}`,
@@ -214,23 +224,37 @@ function castSize(source, typeInfo, addToRecentTypes = true) {
     //     `mov ${formatRegister(dummyRegister, 32)}, ${source}`,  // mov %edx, abc
     //     `mov ${lbl}, ${formatRegister(dummyRegister, typeInfo.pointer ? 32 : typeInfo.bits)}` // mov temp, %dx
     // )
-    asm.text.push(
-        // `xor ${formatRegister(dummyRegister, 32)}, ${formatRegister(dummyRegister, 32)}`
-        `mov ${formatRegisterObj(dummyRegister, 32)}, ${source}`,
-        `mov ${lbl}, ${formatRegisterObj(dummyRegister, typeInfo)}`
-    )
+    var type = types.i32
+    if(parseInt(source) != source)
+    {
+        if(Object.keys(functionLocals).includes(formatFunctionLocal(source)))
+        {
+            type = functionsLocals[formatFunctionLocal(source)]
+        } else if (Object.keys(variableList).includes(source))
+        {
+            type = variableList[source]
+        }
+    }
+    var text = [
+    `xor ${formatRegister(dummyRegister, 32)}, ${formatRegister(dummyRegister, 32)}`,
+    `mov ${formatRegisterObj(dummyRegister, type)}, ${source}`,
+    `mov ${lbl}, ${formatRegisterObj(dummyRegister, typeInfo)}`]
+
+    // strict typed variable at definition
+    if (inFunction) asm.text.push(...text)
+    else asm.init.push(...text)
     return lbl
 }
 
-function setVariable(destination, source) {
+function setVariable(destination, source, writeToInit = false) {
     //var b = variableList[destination].pointer ? 32 : variableList[destination].bits
-    twoStepLoad({ destination, source, type: variableList[destination] })
+    twoStepLoad({ destination, source, type: variableList[destination], writeToInit })
 }
 
 function createVariable(name, type, value) {
     asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
     variableList[name] = type
-    if(value != null) setVariable(name, value)
+    if (value != null) setVariable(name, value, true)
 }
 
 function math(arr) {

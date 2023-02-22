@@ -31,15 +31,19 @@ helloStrict = @string "hello world";
 number_small = @i8 123;
 number_auto = 456;
 
-typed_math = {i8 132 + number_small};
-regular_math = {543 + number_auto};
-
+// untyped functions
 <a, b> function sum;
     return {a + b};
 };
 
 function main;
-    put_int(sum(1,2));
+    // type math
+    typed_math = {i8 132 + number_small};
+    // defualt math
+    regular_math = {543 + number_auto};
+    // nested function calls
+    // 123 + 456 + 21 = 600
+    put_int(sum(sum(number_small,number_auto),21));
 };
 
 `
@@ -88,7 +92,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
 
             // cast next word with the specified type
             var addr = functions.castSize(word_offset(2), types[word_offset(1)])
-            replaceIndex(addr)
+            lineContents.splice(wordNum, 3, addr)
+            console.log(lineContents)
         }
         else if (word == parseInt(word)) // Integer
         {
@@ -162,6 +167,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         {
             var index = 2;
             var i2 = 0
+            asm.text.push(`xor %ecx, %ecx`)
             while (word_offset(index) != ')') {
                 if (word_offset(index) != ',') {
                     functions.pushParameter(word, i2++, word_offset(index))
