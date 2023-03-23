@@ -1,0 +1,19 @@
+//  automatic typing;
+helloText = "hello world";
+//  OR;
+helloTextTwo = @string "hello world";
+
+//  strict type
+function main;
+    //  easy functions
+    print(helloText);
+    //  or low level manipulation;
+    l = 0;
+    repeat l to 10;
+        // a means auto, pointer type;
+        print(a:str);
+        str = str + 1;
+    close;
+close;
+    
+

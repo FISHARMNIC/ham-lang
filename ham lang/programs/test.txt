@@ -1,0 +1,9 @@
+str = "hello";
+secstr = "world";
+num = 123;
+
+function main;
+    put_string(str.cat(secstr));
+    str.print();
+    num.print();
+close;
