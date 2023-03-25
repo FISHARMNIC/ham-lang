@@ -56,7 +56,7 @@ put_int(123 + 456); // won't work;
 ```
 Math is evuated from left to right, and accumulated the answer as it goes. This means no order of operation or parenthesis (hoping to fix this soon). The math accumulator can also be clamped to a certain size. By default it is 32 bits. This can be done by adding a type right after the opening bracket.
 ```C
-put_int({@i8 255 + 1}); // will print 0;
+put_int({i8 255 + 1}); // will print 0;
 ``` 
 ## Loops
 
@@ -111,3 +111,5 @@ put_char(i8:str); // Load character from string
 ## Class-likes
 Each type has a set of propeties and functions, which can be accessed by the period. This feature is still largely WIP, but currently supports `thing.print()`, which will print a variables value
  
+# Examples
+---
