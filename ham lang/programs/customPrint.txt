@@ -1,5 +1,4 @@
 VGA = 753664;
-str = "hello";
 
 <@i8 ch> @void function ochar;
     VGA <- ch;
@@ -9,7 +8,8 @@ str = "hello";
 close;
 
 <@string str> @void function ostr;
-    repeat(i, 10);
+    i = 0;
+    repeat i to 5;
         ochar(i8:str);
         str = {str + 1};
     close;

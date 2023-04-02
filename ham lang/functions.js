@@ -11,7 +11,7 @@ global.userFunctionArr = []
 global.inFunction = false
 global.functionLocals = {}
 
-var tempLabels = {
+global.tempLabels = {
     "8": 0,
     "16": 0,
     "32": 0
@@ -21,6 +21,21 @@ global.highestTempLabel = {
     "8": 0,
     "16": 0,
     "32": 0
+}
+
+global.dynamicFunctions = {
+    "print": function (type) {
+        switch (JSON.stringify(type)) {
+            case JSON.stringify(types.string):
+                return "put_string"
+            case JSON.stringify(types.i32):
+                return "put_int"
+            case JSON.stringify(types.i16):
+                return "put_short"
+            case JSON.stringify(types.i8):
+                return "put_char"
+        }
+    }
 }
 /* #region  Compiler Functions */
 
@@ -36,8 +51,13 @@ function type2Asm(b) {
     return `.${b.bits / 8}byte`
 }
 
-function error(e) {
-    console.log(e)
+function error(e, line, word) {
+    console.error(`\x1b[31m ***[COMPILE ERROR]*** \x1b[0m [line ${line + 1}:${word}]`, e)
+    process.exit(0)
+}
+
+function warning(e, line, word) {
+    console.error(`\x1b[33m ***[WARNING]*** \x1b[0m [line ${line + 1}:${word}]`, e)
 }
 
 function formatRegister(letter, bits, pointer = false, low = true) {
@@ -70,7 +90,7 @@ function tempLabel(bits) {
 
 function declareFunction(line) {
     inFunction = true
-    console.log("FUNCTION NSCREATE", line)
+    //console.log("FUNCTION NSCREATE", line)
     var ftype = 0
     /*     parameters         return
     0 :     none           un-typed/none
@@ -205,7 +225,7 @@ function twoStepLoad({ destination, source, indirect = false, type = { bits: 32,
     // moves a source to a destination, can be register, label, etc.
     type = JSON.parse(JSON.stringify(type))
     if (type.pointer) type.bits = 32
-
+    //asm.text.push(`# ${JSON.stringify(variableList)}`)
     var formattedReg = formatRegister(dummyRegister, type.bits)
     var out = [
         `${indirect ? "lea" : "mov"} ${formattedReg}, ${source}`,     // mov %edx, source |OR| lea %edx, source
@@ -216,24 +236,24 @@ function twoStepLoad({ destination, source, indirect = false, type = { bits: 32,
     else asm.text.push(...out)
 }
 
-function indirectSet(destination, source, type) {
+function indirectSet(destination, source, source_type) {
 
-    var formattedReg = formatRegisterObj('a', type)
-    var formatSet = type
+    var source_reg = formatRegisterObj('a', source_type)
 
-    if (parseInt(destination) != destination) {
-        if (Object.keys(functionLocals).includes(formatFunctionLocal(destination))) {
-            formatSet = functionLocals[formatFunctionLocal(destination)]
-        } else if (Object.keys(variableList).includes(destination)) {
-            formatSet = variableList[destination]
-        }
+    var destination_type = types.i32
+    if (Object.keys(functionLocals).includes(formatFunctionLocal(destination))) {
+            destination_type = functionLocals[formatFunctionLocal(destination)]
+    } else if (Object.keys(variableList).includes(destination)) {
+            destination_type = variableList[destination]
     }
-    formatSet = formatRegisterObj('d', formatSet)
+
+    var destination_reg = formatRegisterObj('d', destination_type)
 
     var out = [
-        `mov ${formattedReg}, ${source}`,     // mov %edx, source |OR| lea %edx, source
-        `mov ${formatSet}, ${destination}`,
-        `mov [${formatSet}], ${formattedReg}`                        // mov destination, %edx
+        `mov ${source_reg}, ${source}`,     // mov %edx, source |OR| lea %edx, source
+        `xor %edx, %edx`,
+        `mov ${destination_reg}, ${destination}`,
+        `mov [%edx], ${source_reg}`                        // mov destination, %edx
     ]
 
     asm.text.push(...out)
@@ -289,6 +309,20 @@ function setVariable(destination, source, writeToInit = false) {
     twoStepLoad({ destination, source, type: variableList[destination], writeToInit })
 }
 
+function setVariableAndCheckLocal(destination, source, writeToInit = false)
+{
+    console.log(formatFunctionLocal(destination), functionLocals)
+    var type;
+    if (Object.keys(functionLocals).includes(formatFunctionLocal(destination))) {
+        console.log("yup")
+        type = functionLocals[formatFunctionLocal(destination)]
+        destination = formatFunctionLocal(destination)
+    } else if (Object.keys(variableList).includes(destination)) {
+        type = variableList[destination]
+    }
+    twoStepLoad({ destination, source, type, writeToInit })
+}
+
 function createVariable(name, type, value) {
 
     //console.log("TYPE", type)
@@ -314,7 +348,7 @@ function math(arr) {
     var regD = formatRegister('d', mathBits)
     // clear all registers
 
-    console.log("----------FORMAT----------", rtype(arr[scanPos], mathBits))
+    //console.log("----------FORMAT----------", rtype(arr[scanPos], mathBits))
     asm.text.push(
         `pusha`,
         `xor %eax, %eax`,
@@ -375,7 +409,7 @@ function math(arr) {
                     ]
                 case ">":
                     return [
-                        `mov ${regA}, ${inD.next}`,
+                        `mov ${regC}, ${inD.next}`,
                         `shr ${regA}, %cl`,
                     ]
                 case "&":
@@ -406,10 +440,10 @@ function rtype(source, ogtype) {
     return ret;
 }
 
-function checkVariableExists(name)
-{
+function checkVariableExists(name) {
     return Object.keys(functionLocals).includes(formatFunctionLocal(name)) || Object.keys(variableList).includes(name)
 }
+
 function getVariableType(name) {
     var pre;
     if (Object.keys(functionLocals).includes(formatFunctionLocal(name))) {
@@ -417,24 +451,37 @@ function getVariableType(name) {
     } else if (Object.keys(variableList).includes(name)) {
         pre = variableList[name]
     } else {
-        console.log("Undefined variable ", name)
+        error("Undefined variable " + name)
+        process.exit(0)
     }
     return pre;
 }
 
-function performOnVar(operation, name, type)
-{
+function performOnVar(operation, name, type) {
     var reg = formatRegisterObj('c', type)
     asm.text.push(
         `mov ${reg}, ${name}`,
         `${operation} ${reg}`,
         `mov ${name}, ${reg}`
     )
-    
+
+}
+
+function changetype(variable, newtype) {
+    if (Object.keys(functionLocals).includes(formatFunctionLocal(variable))) {
+        functionLocals[formatFunctionLocal(variable)] = JSON.parse(JSON.stringify(newtype))
+    } else if (Object.keys(variableList).includes(variable)) {
+        variableList[variable] = JSON.parse(JSON.stringify(newtype))
+        //console.log(variableList)
+    }
 }
 /* #endregion */
 
 module.exports = {
+    error,
+    warning,
+    changetype,
+    typeToBits,
     generateAutoLabel,
     declareString,
     twoStepLoad,
@@ -442,6 +489,7 @@ module.exports = {
     castSize,
     createVariable,
     setVariable,
+    setVariableAndCheckLocal,
     math,
     declareFunction,
     mostRecentFunction,

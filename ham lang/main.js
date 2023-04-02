@@ -6,6 +6,7 @@ raw assembly support (easy peasy)
 pointers (colon)
 super important - add printing without type specification, like print("hi") should be super easy
 allow untyped funcitons to guess their return type, currently only return i32, but what about string?
+add variable type conversion
 */
 
 global.asm = {
@@ -15,7 +16,7 @@ global.asm = {
 }
 
 global.types = require("./types.js")
-
+global.strictmode = false
 global.recentTypes = [];
 global.lastType = () => recentTypes.pop()
 global.variableList = {
@@ -51,9 +52,9 @@ var wordNum = 0;
 for (lineNum = 0; lineNum < code.length; lineNum++) {
     var lineContents = parser.parse(code[lineNum]);
     console.log(lineContents)
-    // comment
     if (lineContents[0] == "/" && lineContents.length > 1 && lineContents[1] == "/") continue
-
+    // if broken remove this here
+    tempLabels = {"8": 0,"16": 0,"32": 0}
     recentTypes = [];
     for (wordNum = lineContents.length - 1; wordNum >= 0; wordNum--) {
         var word = lineContents[wordNum];
@@ -77,7 +78,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         {
             var addr = functions.declareString({ contents: word })
             replaceIndex(addr)
-            console.log("line: " + lineContents)
+            //console.log("line: " + lineContents)
         }
         else if (word[0] == "'") {
             replaceIndex(word.charCodeAt(1))
@@ -105,14 +106,22 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             var vname = word_offset(-1)
             var value = word_offset(1)
             // if we have already created a variable
-            //console.log(variableList, type, vname)
             if (functions.checkVariableExists(vname)) {
-                if (JSON.stringify(type) != JSON.stringify(variableList[vname])) {
+                var variable_type = functions.getVariableType(vname)
+                if (JSON.stringify(type) != JSON.stringify(variable_type)) {
                     // have to reassign type
-                    console.log(type, variableList[vname], type == variableList[vname])
-                    functions.error("Type reassign unfinished")
+                    if(JSON.stringify(variable_type) != JSON.stringify(types.i32) && JSON.stringify(variable_type) != JSON.stringify(types.string)) {
+                        functions.warning(`reassigning declared type to smaller type: ${JSON.stringify(variable_type)} as ${JSON.stringify(type)}`, lineNum, wordNum)
+                    }
+                    if(!strictmode)
+                    {
+                        functions.setVariableAndCheckLocal(vname, value)
+                        functions.changetype(vname, type)
+                    } else {
+                        functions.error(`[Strict mode enabled] unable to cast ${JSON.stringify(variable_type)} to ${JSON.stringify(type)}`, lineNum, wordNum)
+                    }
                 } else {
-                    functions.setVariable(vname, value)
+                    functions.setVariableAndCheckLocal(vname, value)
                 }
             }
             else {
@@ -122,12 +131,28 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         }
         else if (word == ':')
         {
-            // pointer calls
+            // FIX CANNOT USE POINTER AS IF like repeat i to i8:str
+            var value_type = lastType()
+            var pointer_type = types[word_offset(-1)]
+            var lbl = functions.tempLabel(functions.typeToBits(pointer_type))
+
+            var value = word_offset(1)
+
+            var reg_a = functions.formatRegisterObj('c', value_type)
+            var reg_b = functions.formatRegisterObj('d', pointer_type)
+            asm.text.push(
+                `push %ecx`,
+                `mov ${reg_a}, ${value}`,
+                `mov ${reg_b}, [${reg_a}]`,
+                `mov ${lbl}, ${reg_b}`,
+                `pop %ecx`
+            )
+            lineContents.splice(wordNum - 1, 3, lbl)
         }
         else if (Object.keys(variableList).includes(word)) // Asking for variable
         {
             var type = variableList[word]
-            var lbl = functions.tempLabel(type.bits)
+            var lbl = functions.tempLabel(functions.typeToBits(type))
             if(!DoNotLoadVariable.includes(word_offset(-1))) {
                 functions.twoStepLoad({ destination: lbl, source: word, type })
                 replaceIndex(lbl)
@@ -138,7 +163,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         {
             var truename = functions.formatFunctionLocal(word)
             var type = functionLocals[truename]
-            var lbl = functions.tempLabel(type.bits)
+            var lbl = functions.tempLabel(functions.typeToBits(type))
             functions.twoStepLoad({ destination: lbl, source: truename, type })
             replaceIndex(lbl)
             recentTypes.push(type)
@@ -166,6 +191,10 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             bracketStack.push({ type: "repeat", data: {lbl,counter,end, phrase} })
             // support like repeat 1 down 10 or repeat 1 to 10
             asm.text.push(lbl + ":")
+        }
+        else if (word == 'if')
+        {
+            
         }
         else if (word == 'function') {
             //console.log("riofrpeijforjioeiojijeoigije")
@@ -244,7 +273,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 new_code.pop()
                 lineContents.splice(wordNum - 2, new_code.length, ...new_code)
                 wordNum += argum.length + 2
-                console.log("FINAL", lineContents, wordNum)
+                //console.log("FINAL", lineContents, wordNum)
 
 
             } else {
@@ -257,16 +286,21 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                     }
                     index++
                 }
+                if(Object.keys(dynamicFunctions).includes(word))
+                    word = dynamicFunctions[word](lastType())
                 asm.text.push(`_shift_stack_left_`, `call ${word}`, `_shift_stack_right_`)
                 lineContents.splice(wordNum, i2 * 2 + 2, `_return_i${functions.typeToBits(userFunctions[word].returnType)}_`)
                 recentTypes.push(variableList[`_return_i${functions.typeToBits(userFunctions[word].returnType)}_`])
-                console.log("CALLED", recentTypes.at(-1), word, lineContents)
+                console.log("CALLED", word, recentTypes.at(-1), lineContents)
                 // HERE NOT INSERTING FUNCTION OUTPUT 123
             }
             //console.log("out: ", lineContents)
         }
+        else if(word == "strict")
+        {
+            strictmode = true;
+        }
         //console.log(userFunctionArr)
-
     }
 }
 

@@ -1,0 +1,43 @@
+{
+    "activeProfile": {
+        "name": "ham lang",
+        "keywords": [
+            {
+                "color": "#bb1b1b",
+                "keywords": [
+                    "@i8",
+                    "@i16",
+                    "@i32",
+                    "@p8",
+                    "@p16",
+                    "@p32",
+                    "@string",
+                    "@void"
+                ],
+                "exact": false,
+                "case": false
+            },
+            {
+                "color": "#767fc1",
+                "keywords": [
+                    "<-",
+                    "="
+                ],
+                "exact": false,
+                "case": false
+            },
+            {
+                "color": "#2ea5bd",
+                "keywords": [
+                    "function",
+                    "repeat",
+                    "close"
+                ],
+                "exact": false,
+                "case": false
+            }
+        ],
+        "ranges": []
+    },
+    "inactiveProfiles": []
+}

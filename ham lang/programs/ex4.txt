@@ -1,0 +1,7 @@
+
+// type reassignment and dynamic functions;
+function main;
+    i = 123;
+    i = "hello";
+    print(i);
+close;
