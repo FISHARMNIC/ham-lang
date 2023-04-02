@@ -56,7 +56,7 @@ put_int(123 + 456); // won't work;
 ```
 Math is evuated from left to right, and accumulated the answer as it goes. This means no order of operation or parenthesis (hoping to fix this soon). The math accumulator can also be clamped to a certain size. By default it is 32 bits. This can be done by adding a type right after the opening bracket.
 ```C
-put_int({i8 255 + 1}); // will print 0;
+put_int({@i8 255 + 1}); // will print 0;
 ``` 
 ## Loops
 
@@ -106,10 +106,47 @@ close;
 ## Pointers
 Pointers are called using a type followed by the address, seperated by a colon. The type will specify how many bytes to load from the address. Note that the type should not have the `@` specifier
 ```C
-put_char(i8:str); // Load character from string
+str = "hello";
+put_char(i8:str); // prints 'h';
+```
+
+In order to indirectley set a value —for example in C `*str = 'a'`— use the arrow operator.
+```C
+str = "hay";
+str <- 'y'; // becomes yay;
 ```
 ## Class-likes
 Each type has a set of propeties and functions, which can be accessed by the period. This feature is still largely WIP, but currently supports `thing.print()`, which will print a variables value
  
 # Examples
 ---
+```C
+helloText = "hello world"; // string;
+helloStrict = @string "hello world";
+number_small = @i8 123;
+number_auto = 456;
+
+// function to add two numbers and return their sum;
+<a, b> function sum;
+    return {a + b};
+close;
+
+// similar function but with types;
+<@i16 a, @i16 b> @i16 function sumShort;
+    return {i16 a + b};
+close;
+
+// main function to be run;
+function main;
+    typed_math = {i8 132 + number_small};
+    regular_math = {543 + number_auto};
+    // 123 + 456 + 21 = 600;
+    put_int(sum(sum(number_small,number_auto),21));
+    
+    // loop;
+    i = 0;
+    repeat i to 10;
+        put_int(i);
+    close;
+close;
+```
