@@ -5,7 +5,11 @@ global.userFunctions = {
     put_short: { autoReturn: true, returnType: types.i32, parameters: { _: types.i16 } },
     put_char: { autoReturn: true, returnType: types.i32, parameters: { _: types.i8 } },
     put_string: { autoReturn: true, returnType: types.i32, parameters: { _: types.string } },
-    _str_concat_: { autoReturn: true, returnType: types.string, parameters: { a: types.string, b: types.string } }
+    getc: { autoReturn: true, returnType: types.i8, parameters: {} },
+    gets: { autoReturn: true, returnType: types.i32, parameters: { _: types.string } },
+    geti: { autoReturn: true, returnType: types.i32, parameters: {} },
+    _str_concat_: { autoReturn: true, returnType: types.string, parameters: { a: types.string, b: types.string } },
+    slen: { autoReturn: true, returnType: types.i32, parameters: { a: types.string } },
 }
 global.userFunctionArr = []
 global.inFunction = false
@@ -44,7 +48,6 @@ function typeToBits(b) {
     return b.bits
 }
 
-
 function type2Asm(b) {
     if (b.pointer) return `.4byte`
     if (b.bits == 8) return `.byte`
@@ -80,10 +83,11 @@ function generateAutoLabel() {
     return "_LBL" + autoLabel++ + "_";
 }
 
-function tempLabel(bits) {
+function tempLabel(bits,pointer = false) {
+    if(pointer) bits = 32
     bits = String(bits)
     var str = `_TEMP${bits}_${tempLabels[bits]++}_`;
-    variableList[str] = { bits, pointer: false }
+    variableList[str] = { bits, pointer }
     if (tempLabels[bits] > highestTempLabel[bits] - 1) highestTempLabel[bits] = tempLabels[bits]
     return str;
 }
@@ -157,15 +161,15 @@ function declareFunction(line) {
 
     asm.text.push(
         `${fname}:`,
-        `_shift_stack_right_`,
+        `_shift_stack_right_ # enter argument stack`,
     )
     // pop into parameters
     Object.entries(parameters).reverse().forEach(x => {
         var name = x[0];
         var type = x[1];
         asm.text.push(
-            `pop ${formatRegister('a', 32)}`,
-            `mov ${name}, ${formatRegisterObj('a', type)}`
+            `pop ${formatRegister('a', 32)} # pop argument`,
+            `mov ${name}, ${formatRegisterObj('a', type)} # load into corresponding variable`
         )
     })
     userFunctionArr.push(fname)
@@ -188,7 +192,7 @@ function funcReturn(data = "") {
         twoStepLoad({ destination: `_return_i${typeToBits(inf.returnType)}_`, source: data, type: inf.returnType })
     }
     asm.text.push(
-        `_shift_stack_left_`,
+        `_shift_stack_left_ # enter call stack`,
         `ret`
     )
 }
@@ -212,8 +216,8 @@ function pushParameter(fname, parameterIndex, value) {
     //twoStepLoad({destination: formatRegister(dummyRegister, type), source: value, type})
     asm.text.push(
         `xor ${formatRegister(dummyRegister, 32)}, ${formatRegister(dummyRegister, 32)}`,
-        `mov ${formatRegisterObj(dummyRegister, type)}, ${value}`,
-        `push ${formatRegister(dummyRegister, 32)}`
+        `mov ${formatRegisterObj(dummyRegister, type)}, ${value} # load parameter into register`,
+        `push ${formatRegister(dummyRegister, 32)} # push to argument stack`
     )
 }
 
@@ -228,8 +232,8 @@ function twoStepLoad({ destination, source, indirect = false, type = { bits: 32,
     //asm.text.push(`# ${JSON.stringify(variableList)}`)
     var formattedReg = formatRegister(dummyRegister, type.bits)
     var out = [
-        `${indirect ? "lea" : "mov"} ${formattedReg}, ${source}`,     // mov %edx, source |OR| lea %edx, source
-        `mov ${destination}, ${formattedReg}`                        // mov destination, %edx
+        `${indirect ? "lea" : "mov"} ${formattedReg}, ${source} # 2step - load into register`,     // mov %edx, source |OR| lea %edx, source
+        `mov ${destination}, ${formattedReg} # 2step - load into destination`                        // mov destination, %edx
     ]
 
     if (writeToInit) asm.init.push(...out)
@@ -242,18 +246,20 @@ function indirectSet(destination, source, source_type) {
 
     var destination_type = types.i32
     if (Object.keys(functionLocals).includes(formatFunctionLocal(destination))) {
-            destination_type = functionLocals[formatFunctionLocal(destination)]
+        destination_type = functionLocals[formatFunctionLocal(destination)]
     } else if (Object.keys(variableList).includes(destination)) {
-            destination_type = variableList[destination]
+        destination_type = variableList[destination]
     }
 
     var destination_reg = formatRegisterObj('d', destination_type)
 
     var out = [
+        `# -- indirect set -- `,
         `mov ${source_reg}, ${source}`,     // mov %edx, source |OR| lea %edx, source
         `xor %edx, %edx`,
         `mov ${destination_reg}, ${destination}`,
-        `mov [%edx], ${source_reg}`                        // mov destination, %edx
+        `mov [%edx], ${source_reg}`,                        // mov destination, %edx
+        `# --     end      --`
     ]
 
     asm.text.push(...out)
@@ -268,11 +274,11 @@ function declareString({ contents, name = null, pointer = true, containsQuotes =
 
     if (pointer) { // return pointer to address
         var label = generateAutoLabel()
-        asm.data.push(`${label}: .asciz ${contents}`)                      // auto: .asciz "text"
-        asm.data.push(`${name}: .4byte 0`)                                 // name: .4byte 0
+        asm.data.push(`${label}: .asciz ${contents} # string contents`)                      // auto: .asciz "text"
+        asm.data.push(`${name}: .4byte 0 # string adress`)                                 // name: .4byte 0
         twoStepLoad({ destination: name, source: label, writeToInit: true, indirect: true, })    // lea name, auto
     } else { // return direct label (need lea to load address)
-        asm.data.push(`${name}: .asciz ${contents}`)
+        asm.data.push(`${name}: .asciz ${contents} # string label (no pointer)`)
     }
 
     return name
@@ -295,8 +301,8 @@ function castSize(source, typeInfo, addToRecentTypes = true) {
     }
     var text = [
         `xor ${formatRegister(dummyRegister, 32)}, ${formatRegister(dummyRegister, 32)}`,
-        `mov ${formatRegisterObj(dummyRegister, type)}, ${source}`,
-        `mov ${lbl}, ${formatRegisterObj(dummyRegister, typeInfo)}`]
+        `mov ${formatRegisterObj(dummyRegister, type)}, ${source} # load into register`,
+        `mov ${lbl}, ${formatRegisterObj(dummyRegister, typeInfo)} # cast into specified type`]
 
     // strict typed variable at definition
     if (inFunction) asm.text.push(...text)
@@ -304,17 +310,16 @@ function castSize(source, typeInfo, addToRecentTypes = true) {
     return lbl
 }
 
-function setVariable(destination, source, writeToInit = false) {
+function setVariable(destination, source, writeToInit = false, pointer = false) {
     //var b = variableList[destination].pointer ? 32 : variableList[destination].bits
-    twoStepLoad({ destination, source, type: variableList[destination], writeToInit })
+    twoStepLoad({ destination, source, type: variableList[destination], writeToInit, indirect: pointer })
 }
 
-function setVariableAndCheckLocal(destination, source, writeToInit = false)
-{
-    console.log(formatFunctionLocal(destination), functionLocals)
+function setVariableAndCheckLocal(destination, source, writeToInit = false) {
+    //console.log(formatFunctionLocal(destination), functionLocals)
     var type;
     if (Object.keys(functionLocals).includes(formatFunctionLocal(destination))) {
-        console.log("yup")
+        //console.log("yup")
         type = functionLocals[formatFunctionLocal(destination)]
         destination = formatFunctionLocal(destination)
     } else if (Object.keys(variableList).includes(destination)) {
@@ -327,10 +332,20 @@ function createVariable(name, type, value) {
 
     //console.log("TYPE", type)
     var t = JSON.stringify(type)
-    asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
-    variableList[name] = JSON.parse(t)
-    if (value != null) setVariable(name, value, true)
+        asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
+        variableList[name] = JSON.parse(t)
+        if (value != null) setVariable(name, value, true)
+}
 
+function allocateArray(type, data)
+{
+    var lbl = generateAutoLabel();
+    var name_ = generateAutoLabel();
+
+    asm.data.push(`${lbl}: ${type2Asm(type)} ${data.join("")} # array data`)
+    asm.data.push(`${name_}: .4byte 0 # array pointer`)                                 // name: .4byte 0
+    twoStepLoad({ destination: name_, source: lbl, writeToInit: true, indirect: true, })  
+    return name_
 }
 
 function math(arr) {
@@ -502,5 +517,6 @@ module.exports = {
     formatRegisterObj,
     getVariableType,
     performOnVar,
-    checkVariableExists
+    checkVariableExists,
+    allocateArray
 }

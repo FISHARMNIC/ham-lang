@@ -1,3 +1,4 @@
+// NOT WORKING class-likes;
 str = "hello";
 secstr = "world";
 num = 123;

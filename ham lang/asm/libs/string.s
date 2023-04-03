@@ -1,15 +1,15 @@
 .section .text
 
-strlen:
+slen:
     _shift_stack_right_
     pop %eax
     push %ecx
     mov %ecx, %eax # ecx will hold base
     dec %eax
-    strlen.l:
+    slen.l:
         inc %eax
         cmpb [%eax], 0
-        jne strlen.l
+        jne slen.l
     sub %eax, %ecx
     pop %ecx
     _shift_stack_left_

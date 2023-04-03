@@ -106,7 +106,14 @@ close;
 ## Pointers
 Pointers are called using a type followed by the address, seperated by a colon. The type will specify how many bytes to load from the address. Note that the type should not have the `@` specifier
 ```C
-put_char(i8:str); // Load character from string
+str = "hello";
+put_char(i8:str); // prints 'h';
+```
+
+In order to indirectley set a value —for example in C `*str = 'a'`— use the arrow operator.
+```C
+str = "hay";
+str <- 'y'; // becomes yay;
 ```
 ## Class-likes
 Each type has a set of propeties and functions, which can be accessed by the period. This feature is still largely WIP, but currently supports `thing.print()`, which will print a variables value

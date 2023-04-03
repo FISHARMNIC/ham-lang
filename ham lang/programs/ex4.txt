@@ -1,7 +1,7 @@
-
 // type reassignment and dynamic functions;
 function main;
     i = 123;
+    print(i);
     i = "hello";
     print(i);
 close;
