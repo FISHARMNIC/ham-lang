@@ -1,7 +1,10 @@
-str = "        ";
+str = "     ";
 arr = [1,2,3];
 
 function main;
-    arr[1];
-    // gets($str);
+    print(arr[1]);
+    gets(str);
+    print(str);
+    print("done");
+    mov %eax, str __asm__;
 close;

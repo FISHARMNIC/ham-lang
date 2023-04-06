@@ -12,6 +12,7 @@ slen:
         jne slen.l
     sub %eax, %ecx
     pop %ecx
+    mov _return_i32_, %eax
     _shift_stack_left_
     ret
 
@@ -25,12 +26,12 @@ strcmp:
     push %eax
     _shift_stack_right_
 
-    call strlen # call with str1
+    call slen # call with str1
     mov %edx, %eax # edx holds len1
     
     xor %eax, %eax
     mov %eax, %ebx
-    call strlen #  call with str2
+    call slen #  call with str2
 
     sub %eax, %edx # cmp lengths
     jnz strcmp.exit

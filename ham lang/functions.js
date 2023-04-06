@@ -63,6 +63,18 @@ function warning(e, line, word) {
     console.error(`\x1b[33m ***[WARNING]*** \x1b[0m [line ${line + 1}:${word}]`, e)
 }
 
+function nameFromType(type)
+{
+    var rt;
+    Object.entries(types).forEach(x => {
+        //console.log(JSON.stringify(x[1]),JSON.stringify(type), JSON.stringify(x[1]) == JSON.stringify(type))
+        if(JSON.stringify(x[1]) == JSON.stringify(type))
+        {
+            rt = x[0]
+        }
+    })
+    return rt
+}
 function formatRegister(letter, bits, pointer = false, low = true) {
     if (pointer) return `%e${letter}x`
     if (bits == 32)
@@ -118,11 +130,14 @@ function declareFunction(line) {
     var autoReturn = true; // for end of function return something
     var returnType = types.i32;
     var parameters = {};
+    var unknownReturnType = false;
 
     if (ftype == 0) {
+        unknownReturnType = true;
         fname = line[1];
     }
     else if (ftype == 1) {
+        unknownReturnType = true;
         var index = 1
         fname = line[line.indexOf(">") + 2];
         // create the variables
@@ -176,20 +191,29 @@ function declareFunction(line) {
     userFunctions[fname] = {
         autoReturn, // for end of function return something
         returnType,
-        parameters
+        parameters,
+        unknownReturnType
     }
-    bracketStack.push({ type: "function", data: {} })
+    bracketStack.push({ type: "function", data: {fname, unknownReturnType} })
 }
 
 function mostRecentFunction() {
-    return userFunctions[userFunctionArr.at(-1)]
+    var name = userFunctionArr.pop()
+    //console.log(name)
+    return {name, data: userFunctions[name]}
 }
 
-function funcReturn(data = "") {
-    var inf = mostRecentFunction()
-    //console.log(inf)
+function funcReturn(data = "", type = types.i32) {
+    var inf_all = mostRecentFunction()
+    var inf = inf_all.data
+    if(inf.unknownReturnType)
+    {
+        inf.returnType = type
+        userFunctions[inf_all.name].returnType = type
+    }
+    //console.log("-", nameFromType(inf.returnType), userFunctions.bob)
     if (data != "") {
-        twoStepLoad({ destination: `_return_i${typeToBits(inf.returnType)}_`, source: data, type: inf.returnType })
+        twoStepLoad({ destination: `_return_${nameFromType(inf.returnType)}_`, source: data, type: inf.returnType })
     }
     asm.text.push(
         `_shift_stack_left_ # enter call stack`,
@@ -518,5 +542,6 @@ module.exports = {
     getVariableType,
     performOnVar,
     checkVariableExists,
-    allocateArray
+    allocateArray,
+    nameFromType
 }

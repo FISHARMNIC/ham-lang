@@ -15,10 +15,6 @@ module.exports = {
         bits: 8,
         pointer: true
     },
-    p8: {
-        bits: 8,
-        pointer: true
-    },
     p16: {
         bits: 16,
         pointer: true

@@ -257,8 +257,11 @@ gets:
     push %eax
         _gets_entry:
             call getc
-            // _put_char %al
             mov [%ebx], %al # move into pointer
+            push %eax
+            _shift_stack_left_
+            call put_char
+            _shift_stack_right_
             inc %ebx
             cmpb keyboard_out, KEY_BACKSPACE
             je _gets_DEL

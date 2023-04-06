@@ -1,11 +1,10 @@
 /*
 todo:
-loading indirect values (see customPrint.txt) MAYBE DONE?
 finish classlikes functions like str.print not returning how they should
 raw assembly support (easy peasy)
-allow untyped funcitons to guess their return type, currently only return i32, but what about string?
 add array support for parameters (cant acces parameter[2] because only using unformatted type)
 add setting arrays, when using equal sign if ther is "]" before then know you are setting array
+ex5 not working (does not print string after gets, and gets is broken)
 */
 
 global.asm = {
@@ -29,6 +28,7 @@ global.bracketStack = []
 global.DoNotLoadVariable = [
     "repeat"
 ]
+global.lastReturnType = types.i32;
 
 const functions = require("./functions.js")
 const parser = require("./parser.js")
@@ -154,7 +154,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 `lea %ecx, ${word}`,
                 `mov ${f}, %ecx`
             )
-            lineContents.splice((wordNum--) - 1, 2, f);
+            lineContents.splice(wordNum-- - 1, 2, f);
+            recentTypes.push(types.i32)
         }
         else if (Object.keys(variableList).includes(word)) // Asking for variable
         {
@@ -187,7 +188,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         }
         else if (word == 'return') {
             var p = (lineContents.length > wordNum + 1) ? word_offset(1) : ""
-            functions.funcReturn(p)
+            functions.funcReturn(p, lastType())
         }
         else if (word == 'repeat') {
             var lbl = functions.generateAutoLabel();
@@ -199,7 +200,20 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             asm.text.push(lbl + ":")
         }
         else if (word == 'if') {
-
+            var o1 = word_offset(1)
+            var cmp = word_offset(2)
+            var o2 = word_offset(3)
+            
+            /*
+            cmp o1, o2
+            je lbl_esc
+            lbl: // if
+                print(hi)
+                jmp final_escape
+            lbl_esc: // else
+            cmp o1, o2
+            je
+            */
         }
         else if (word == 'function') {
             //console.log("riofrpeijforjioeiojijeoigije")
@@ -213,8 +227,15 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             var data = bracket.data
             if (type == "function") {
                 inFunction = false
-                functions.funcReturn()
+                asm.text.push(
+                    `_shift_stack_left_ # enter call stack`,
+                    `ret`
+                )
                 functionLocals = {}
+                if(data.unknownReturnType)
+                {
+                    data.fname // HERE INHERIT FROM LAST RETURN
+                }
             }
             else if (type == "repeat") {
                 var type = functions.getVariableType(data.counter)
@@ -261,6 +282,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
 
 
             } else {
+                //console.log(userFunctions)
                 var index = 2;
                 var i2 = 0
                 //asm.text.push(`xor %ecx, %ecx`)
@@ -275,8 +297,9 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 asm.text.push(`_shift_stack_left_`, `call ${word}`, `_shift_stack_right_`)
 
                 var returnt = "_return_i32_"
+                //console.log(word, '-', userFunctions.bob, userFunctions[word].returnType)
                 if (userFunctions[word] != undefined) {
-                    returnt = `_return_i${functions.typeToBits(userFunctions[word].returnType)}_`
+                    returnt = `_return_${functions.nameFromType(userFunctions[word].returnType)}_`
                 } else {
                     if (strictmode)
                         functions.error(`Calling unknown function "${word}"`, lineNum, wordNum)
@@ -301,13 +324,21 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 var type = functions.getVariableType(possvar)
                 var lbl = functions.tempLabel(type.bits)
                 // base + offset * segment
-                asm.text.add(
-                    `mov ${functions.formatRegisterObj(type)}, [${word_offset(1)} + ${possvar}*${type.bits/8}]`,
-                    `mov ${lbl}, ${functions.formatRegisterObj(type)}`
+                var offsetType = functions.formatRegisterObj('d', lastType())
+                asm.text.push(
+                    `push %ebx`,
+                    `xor %edx, %edx`,
+                    `xor %ebx, %ebx`,
+                    `mov ${offsetType}, ${word_offset(1)}`,
+                    `mov ${functions.formatRegisterObj('b', type)}, ${possvar}`,
+                    `mov ${functions.formatRegisterObj('c', type)}, [%ebx + ${offsetType}*${type.bits/8}]`,
+                    `mov ${lbl}, ${functions.formatRegisterObj('c', type)}`,
+                    `pop %ebx`,
                 )
-                console.log(lineContents)
-                lineContents.splice(wordNum, 3, lbl)
-                console.log(lineContents)
+                lineContents.splice(wordNum-- - 1, 4, lbl)
+                var t = JSON.parse(JSON.stringify(type))
+                t.pointer = false // load type but remove pointer 
+                recentTypes.push(t)
             } else { // inline array init: [1,2,3]
                 var index = wordNum + 1
                 var build = []
@@ -320,6 +351,11 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 lineContents.splice(wordNum, build.length + 2, functions.allocateArray(recentTypes.at(-1), build))
                 //console.log(variableList)
             }
+        }
+        else if (word == "__asm__")
+        {
+            asm.text.push(code[lineNum].substring(0, code[lineNum].length - 7) + " # -- user inserted ASM --");
+            break;
         }
         /* #region  method test */
         /*
