@@ -10,6 +10,8 @@
     - Relax your braincells, and let `HAM` do all the typing for you
     - No need to worry about type conversions, mismatches, etc.
 
+Note: this is not a tutorial
+
 ## Typing
 `HAM` offers several types for those who wish to use them. Variables who have been assigned a type cannot be reassigned a new type, and are locked to that type. Types are prefixed with `@`
 
@@ -26,13 +28,9 @@ For each type there is a brief description followed by the C correspondent.
 
 #### Pointer Types
 All pointers are 32 bit numbers, but are treated by the compiler differently. These are similar to C's pointer types.
-- `@p8` 8 bit pointer type (`char *`)
+- `@string` 8 bit pointer type (`char *`)
 - `@p16` 16 bit pointer type (`short int *`)
 - `@p32` 32 bit pointer types (`long int *`)
-
-#### Other Types
-
-- `@string` Same thing as `p8` type 
 
 ## Variables
 
@@ -58,9 +56,9 @@ Math is evuated from left to right, and accumulated the answer as it goes. This 
 ```C
 put_int({@i8 255 + 1}); // will print 0;
 ``` 
-## Loops
+## Loops & Control Flow
 
-#### Repeat
+### Repeat
 The repeat loop takes an **exisiting variable** and counts either up to or down to another number. After the `repeat`, specify the counter variable to be used followed by whether that counter should be incremented or decremented. Use `to` to count upwards, or `down` to count downwards. **Make sure to end with a semicolon, no brackets. Indentation does not matter.** To finish the loop use `close`.
 ```C
 i = 0;
@@ -68,10 +66,54 @@ repeat i to 10;
     // do stuff (indentation doesn't matter)
 close;
 ```
-## Functions
-`HAM` offers several solutions that tailor to every skill level. Let's start with the easiest. One thing to note is that by *typed functions*, I mean the *return type* of that functions. Any untyped function **can still return a *number***, and will default to `i32`. I am working to provide automatically typed returns. Inorder to exit the function, it's the same as loops: use the `close` keyword.
+### If/elif/else
+`if` and `elif` statements are done in the format: `statement arg cmp arg`. Where `arg` are the two values being compared, and `cmp` is the type of comparison. Use the following chart to learn comparison types.
+* `is` | *is equal to* | ==
+* `isnt` | *is not equal to* | !=
+* `less` | *is less than* | <
+* `more` | *is greater than* | >
+* `lessq` | *is less/equal to* | <=
+* `moreq` | *is more/equal to* | >=  
 
-##### *Untyped* Functions *Without Arguments*
+Here is a valid example statement
+```C
+age = 10;
+if bob moreq 16;
+    print("You can get a driving license!");
+close;
+else if bob more 15;
+    print("You can get a driving permit...");
+close;
+else;
+    print("Sorry, you can't drive :(");
+close;
+```
+If statements in `HAM` alter in functionality across different types. For numbers, their value will be compared. For pointer, their contents will be compared. Inorder to compare the address of strings/pointers cast them to `i32` first.
+
+```C
+// compares numbers;
+if 123 is 456;
+    print("something is seriously wrong...");
+close;
+
+// compares string contents;
+name = "James Bond";
+if name is "James Bond";
+    print("Welcome Agent 007");
+close;
+
+// compares addresses;
+address = @p32 123;
+secondaddr = address;
+if @i32 address is @i32 secondaddr;
+    print("Same location!");
+close;
+
+```
+### Functions
+`HAM` offers several solutions that tailor to every skill level. One thing to note is that *typed functions*, mean the *return type* of that function. Any untyped function will inherit it's return statement. For example, if you return a string, the type will be string. Inorder to exit the function, it's the same as any other control flow statement: use the `close` keyword.
+
+##### *Untyped* Functions *Without* Arguments
 ```C
 // untyped with no args
 function easyFunc;
@@ -79,7 +121,7 @@ function easyFunc;
 close;
 ```
 
-##### *Untyped* Functions *With Arguments*
+##### *Untyped* Functions *With* Arguments
 ```C
 // untyped with args
 <a,b> function easyFunc2;
@@ -87,7 +129,7 @@ close;
 close;
 ```
 
-##### *Typed* Functions *Without Arguments*
+##### *Typed* Functions *Without* Arguments
 ```C
 // typed with no args;
 @i8 function myFuncitonNoP;
@@ -95,13 +137,19 @@ close;
 close;
 ```
 
-##### *Typed* Functions *With Arguments*
+##### *Typed* Functions *With* Arguments
 ```C
 // typed args and return; 
 <@i16 a, @i32 b> @i8 function myFunction;
     return {@i8 a + b};
 close;
 ```
+##### Dynamic Functions
+
+Inorder to smoothly handle dynamic typing, certain functions adapt to their inherited type inorder to produce the expected result. For example, the `print` function will print the correct value regardless of the type. This is a sort of macro that is done at compile time. If statements also have this functionality
+##### Calling Functions
+
+Calling functions is done with the standard `name(parameter,parameter,...)`
 
 ## Pointers
 Pointers are called using a type followed by the address, seperated by a colon. The type will specify how many bytes to load from the address. Note that the type should not have the `@` specifier
@@ -116,6 +164,8 @@ str = "hay";
 str <- 'y'; // becomes yay;
 ```
 ## Class-likes
+
+**DEPRECATED: see dynamic functions instead**
 Each type has a set of propeties and functions, which can be accessed by the period. This feature is still largely WIP, but currently supports `thing.print()`, which will print a variables value
  
 # Examples
@@ -150,3 +200,9 @@ function main;
     close;
 close;
 ```
+
+# Changelog
+
+2/21/23: First version uploaded featuring variables and math, along with static and dynamic typing, and untyped functions
+
+2/22/23: 
