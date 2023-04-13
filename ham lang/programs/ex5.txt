@@ -2,9 +2,10 @@ str = "     ";
 arr = [1,2,3];
 
 function main;
+    pointer = @p16 123;
+    pointerbob = pointer;
     print(arr[1]);
     gets(str);
-    print(str);
-    print("done");
+    print(sequals(str, "heljlo"));
     mov %eax, str __asm__;
 close;

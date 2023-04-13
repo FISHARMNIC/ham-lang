@@ -16,7 +16,8 @@ slen:
     _shift_stack_left_
     ret
 
-strcmp:
+sequals:
+    pusha
     _shift_stack_right_
     pop %eax
     pop %ebx
@@ -52,6 +53,7 @@ strcmp:
     mov %bl, %al
     xor %eax, %eax
     mov %al, %bl
-    mov _return_i32_, %eax 
+    mov _return_i8_, %eax 
     _shift_stack_left_ 
+    popa
     ret  

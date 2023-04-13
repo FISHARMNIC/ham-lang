@@ -25,8 +25,11 @@ str: .4byte 0
 _LBL2_: .4byte 1,2,3 # array data
 _LBL3_: .4byte 0 # array pointer
 arr: .4byte 0
-_LBL5_: .asciz "done" # string contents
+pointer: .4byte 0
+pointerbob: .4byte 0
+_LBL5_: .asciz "heljlo" # string contents
 _LBL4_: .4byte 0 # string adress
+_TEMP16_0_: .2byte 0
 _TEMP32_0_: .4byte 0
 
 _kernel_entry:
@@ -51,6 +54,15 @@ hlt
 
 main:
 _shift_stack_right_ # enter argument stack
+xor %ecx, %ecx
+mov %ecx, 123 # load into register
+mov _TEMP16_0_, %ecx # cast into specified type
+mov %ecx, _TEMP16_0_ # 2step - load into register
+mov pointer, %ecx # 2step - load into destination
+mov %ecx, pointer # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+mov %ecx, _TEMP32_0_ # 2step - load into register
+mov pointerbob, %ecx # 2step - load into destination
 push %ebx
 xor %edx, %edx
 xor %ebx, %ebx
@@ -78,14 +90,17 @@ mov _TEMP32_0_, %ecx # 2step - load into destination
 xor %ecx, %ecx
 mov %ecx, _TEMP32_0_ # load parameter into register
 push %ecx # push to argument stack
-_shift_stack_left_
-call put_string
-_shift_stack_right_
 xor %ecx, %ecx
 mov %ecx, _LBL4_ # load parameter into register
 push %ecx # push to argument stack
 _shift_stack_left_
-call put_string
+call sequals
+_shift_stack_right_
+xor %ecx, %ecx
+mov %cl, _return_i8_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call put_char
 _shift_stack_right_
     mov %eax, str  # -- user inserted ASM --
 _shift_stack_left_ # enter call stack

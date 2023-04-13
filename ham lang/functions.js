@@ -10,6 +10,7 @@ global.userFunctions = {
     geti: { autoReturn: true, returnType: types.i32, parameters: {} },
     _str_concat_: { autoReturn: true, returnType: types.string, parameters: { a: types.string, b: types.string } },
     slen: { autoReturn: true, returnType: types.i32, parameters: { a: types.string } },
+    sequals: { autoReturn: true, returnType: types.i8, parameters: { a: types.string, b:types.string } }
 }
 global.userFunctionArr = []
 global.inFunction = false
@@ -55,12 +56,12 @@ function type2Asm(b) {
 }
 
 function error(e, line, word) {
-    console.error(`\x1b[31m ***[COMPILE ERROR]*** \x1b[0m [line ${line + 1}:${word}]`, e)
+    console.error(`\x1b[31m ***[COMPILE ERROR]*** \x1b[0m [line ${line + 2}:${word}]`, e)
     process.exit(0)
 }
 
 function warning(e, line, word) {
-    console.error(`\x1b[33m ***[WARNING]*** \x1b[0m [line ${line + 1}:${word}]`, e)
+    console.error(`\x1b[33m ***[WARNING]*** \x1b[0m [line ${line + 2}:${word}]`, e)
 }
 
 function nameFromType(type)
@@ -358,7 +359,7 @@ function createVariable(name, type, value) {
     var t = JSON.stringify(type)
         asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
         variableList[name] = JSON.parse(t)
-        if (value != null) setVariable(name, value, true)
+        if (value != null) setVariable(name, value, !inFunction) // BROKEN FIX HERE IF BROKEN 123 QWERTY
 }
 
 function allocateArray(type, data)
@@ -506,6 +507,21 @@ function performOnVar(operation, name, type) {
 
 }
 
+function storeAs32(source, type)
+{
+    var lbl = tempLabel(32)
+    var fmt1 = formatRegisterObj('d', type)
+    asm.text.push(
+        `push %edx`,
+        `xor %edx, %edx # storeAs32 - clear whole reg`,
+        `mov ${fmt1}, ${source} # storeAs32 - load as correct type`,
+        `mov ${lbl}, ${fmt1} # storeAs32 - save as whole`,
+        `pop %edx`
+    )
+    recentTypes.push(types.i32)
+    return lbl
+}
+
 function changetype(variable, newtype) {
     if (Object.keys(functionLocals).includes(formatFunctionLocal(variable))) {
         functionLocals[formatFunctionLocal(variable)] = JSON.parse(JSON.stringify(newtype))
@@ -513,6 +529,38 @@ function changetype(variable, newtype) {
         variableList[variable] = JSON.parse(JSON.stringify(newtype))
         //console.log(variableList)
     }
+}
+
+function createIfStatement(o1, o1_type,cmp,o2, o2_type)
+{
+
+
+    if(JSON.stringify(o1_type) != JSON.stringify(o2_type))
+    {
+        if(strictmode)
+            error(`[STRICT] Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
+        else
+            warning(`Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
+    }
+    
+    var lbl1 = storeAs32(o1, o1_type)
+    var lbl2 = storeAs32(o2, o2_type)
+
+    var data = {
+        escape: generateAutoLabel(), // escape from this if
+    }
+
+    // CHANGE "jne" TO OPPOSITE OF COMPARE FORM | HERE 123456 ABCDEF
+    asm.text.push(
+        `// note: maybe we should have push ecx and edx here? Possible source of error...`,
+        `mov %ecx, ${lbl1} # if - load first value`,
+        `mov %edx, ${lbl2} # if - load first value`,
+        `cmp %ecx, %edx`,
+        `jne ${data.escape} # if - if not what we want then escape`,
+        `// if - begin if statement `
+    )
+
+    return data
 }
 /* #endregion */
 
@@ -543,5 +591,7 @@ module.exports = {
     performOnVar,
     checkVariableExists,
     allocateArray,
-    nameFromType
+    nameFromType,
+    storeAs32,
+    createIfStatement
 }

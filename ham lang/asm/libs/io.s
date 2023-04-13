@@ -228,7 +228,9 @@ read_keyboard:
     ret
 
 getc:
+    _shift_stack_right_
     push %ebx
+
     _getc.ls:
     call read_keyboard
     cmpb keyboard_out, 0 # Read and compare keyboard
@@ -243,11 +245,12 @@ getc:
 
     lea %ebx, char_map
     add %ebx, %eax
-    xor %eax, %eax
-    mov %al, [%ebx]
 
-    mov _return_i32_, %eax
+    mov %al, [%ebx]
+    mov _return_i8_, %al
+    
     pop %ebx
+    _shift_stack_left_
     ret
 
 gets:
@@ -256,12 +259,22 @@ gets:
     push %ebx # return addr too
     push %eax
         _gets_entry:
+            pusha
+            _shift_stack_left_
             call getc
+            _shift_stack_right_
+            popa
+
+            mov %al, _return_i8_
             mov [%ebx], %al # move into pointer
+            
+            pusha
             push %eax
             _shift_stack_left_
             call put_char
             _shift_stack_right_
+            popa
+
             inc %ebx
             cmpb keyboard_out, KEY_BACKSPACE
             je _gets_DEL
@@ -270,10 +283,9 @@ gets:
             jne _gets_entry
         dec %ebx
         movb [%ebx], 0
-        pop %eax
+        pop _return_i32_
          
         _shift_stack_left_
-        pop _return_i32_
         ret
 
         _gets_DEL:

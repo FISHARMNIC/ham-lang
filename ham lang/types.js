@@ -24,7 +24,7 @@ module.exports = {
         pointer: true
     },
     void: {
-        bits: 8,
+        bits: 0,
         pointer: false
     },
 }

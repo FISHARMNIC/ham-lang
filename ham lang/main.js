@@ -1,10 +1,11 @@
 /*
 todo:
 finish classlikes functions like str.print not returning how they should
-raw assembly support (easy peasy)
 add array support for parameters (cant acces parameter[2] because only using unformatted type)
 add setting arrays, when using equal sign if ther is "]" before then know you are setting array
 ex5 not working (does not print string after gets, and gets is broken)
+IMPORTANT add global equals so like ("str" == "str") or (123 == 456)
+IMPORTANT add else statement (easy)
 */
 
 global.asm = {
@@ -116,7 +117,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                         functions.setVariableAndCheckLocal(vname, value)
                         functions.changetype(vname, type)
                     } else {
-                        functions.error(`[Strict mode enabled] unable to cast ${JSON.stringify(variable_type)} to ${JSON.stringify(type)}`, lineNum, wordNum)
+                        functions.error(`[STRICT] unable to cast ${JSON.stringify(variable_type)} to ${JSON.stringify(type)}`, lineNum, wordNum)
                     }
                 } else {
                     functions.setVariableAndCheckLocal(vname, value)
@@ -200,19 +201,57 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             asm.text.push(lbl + ":")
         }
         else if (word == 'if') {
-            var o1 = word_offset(1)
-            var cmp = word_offset(2)
-            var o2 = word_offset(3)
-            
+            var t1 = lastType()
+            var t2 = lastType()
+            var data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
+            bracketStack.push({type: "if", data})
+        
             /*
             cmp o1, o2
-            je lbl_esc
+            jme lbl_esc
             lbl: // if
                 print(hi)
                 jmp final_escape
             lbl_esc: // else
             cmp o1, o2
             je
+
+            if 
+                stuff
+            close
+            skip to close 2 <- 
+            else if 
+                stuff
+            close 
+
+            if 
+                stuff
+            close
+            if
+                stuff
+            close 
+            */
+        }
+        else if(word == "elif")
+        {
+            // finish this
+            var t1 = lastType()
+            var t2 = lastType()
+
+            var exit = functions.generateAutoLabel()
+            asm.text.push(`jmp ${exit} # elif - exit from if statement if it was completed`)
+            var data = {type: "elif"}
+            data.data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
+            data.data.elexit = exit
+            bracketStack.push(data)
+            /*
+            if 
+                stuff
+            close
+            skip to close 2 <- 
+            else if 
+                stuff
+            close 
             */
         }
         else if (word == 'function') {
@@ -246,6 +285,20 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 asm.text.push(
                     `cmp ${fmtreg}, ${data.end}`,
                     `jl ${data.lbl}`
+                )
+            }
+            else if (type == "if")
+            {
+                asm.text.push(
+                    `// if - exit if statement`,
+                    data.escape + ": # if - where to escape if statement")
+            }
+            else if (type == "elif")
+            {
+                asm.text.push(
+                    `// elif - exit if statement`,
+                    data.escape + ": # if - where to escape if statement",
+                    data.elexit + ": # elif - where to escape if statement"
                 )
             }
         }
@@ -297,7 +350,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 asm.text.push(`_shift_stack_left_`, `call ${word}`, `_shift_stack_right_`)
 
                 var returnt = "_return_i32_"
-                //console.log(word, '-', userFunctions.bob, userFunctions[word].returnType)
+                //console.log(word + " - ", userFunctions[word])
                 if (userFunctions[word] != undefined) {
                     returnt = `_return_${functions.nameFromType(userFunctions[word].returnType)}_`
                 } else {
@@ -357,6 +410,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             asm.text.push(code[lineNum].substring(0, code[lineNum].length - 7) + " # -- user inserted ASM --");
             break;
         }
+        
         /* #region  method test */
         /*
         // else if (word_offset(-1) == '.') { // class method call
