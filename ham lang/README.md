@@ -12,6 +12,19 @@
 
 Note: this is not a tutorial
 
+# How to run:
+- Made for MacOS (will work on linux with some tweaks in the shell files)
+- Requires:
+    - LimaVM debian (for MacOS)
+    - xorriso (on Lima)
+    - gnu binutils (on Lima)
+    - NodeJS
+- Run "node main.js file" in the same directory as main.js
+    - Example: in directory "ham" type "node main.js programs/ex3.txt"
+- Follow instructions presented at the end of succesful compilation
+
+# Docs
+
 ## Typing
 `HAM` offers several types for those who wish to use them. Variables who have been assigned a type cannot be reassigned a new type, and are locked to that type. Types are prefixed with `@`
 
@@ -163,6 +176,11 @@ In order to indirectley set a value —for example in C `*str = 'a'`— use the 
 str = "hay";
 str <- 'y'; // becomes yay;
 ```
+
+## Passing and returning from the program
+Due to the the fact that HAM is run in a virtual machine, file/data passing to and from is very limited.  
+To return text/data from the program to print as output use `program_return(buffer, length)`. This will print text after the program is finished. To return data in the format of a binary file us `program_return_file(buffer, length)`.
+Only one return statement is allowed and any more after that will overwrite the data.
 ## Class-likes
 
 **DEPRECATED: see dynamic functions instead**

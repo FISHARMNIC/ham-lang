@@ -9,9 +9,12 @@ global.userFunctions = {
     gets: { autoReturn: true, returnType: types.string, parameters: { _: types.string } },
     geti: { autoReturn: true, returnType: types.i32, parameters: {} },
     _str_concat_: { autoReturn: true, returnType: types.string, parameters: { a: types.string, b: types.string } },
-    slen: { autoReturn: true, returnType: types.i32, parameters: { a: types.string } },
+    slen: { autoReturn: true, returnType: types.i32, parameters: { str: types.string } },
     sequals: { autoReturn: true, returnType: types.i8, parameters: { a: types.string, b: types.string } },
-    program_return: { autoReturn: true, returnType: types.i8, parameters: { a: types.i32, b: types.i32 } }
+    program_return: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, size: types.i32 } },
+    program_return_file: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, size: types.i32 } },
+    program_get_in_bytes: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, read_offset: types.i32, bytes: types.i32 } },
+    program_wait_in_ready: {autoReturn: true, returnType: types.i8, parameters: {} }
 }
 global.eolActions = [] // do all this at the end of each line
 global.userFunctionArr = []

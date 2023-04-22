@@ -21,13 +21,20 @@ _return_void_: .byte 0
 .section .data
 
 
-_LBL1_: .asciz "hello" # string contents
+_LBL1_: .asciz "hello, this is a file io test" # string contents
 _LBL0_: .4byte 0 # string adress
-arr: .4byte 0
-_printThirdLetter_a_: .4byte 0
-_modifyString_a_: .4byte 0
-_TEMP8_0_: .byte 0
+str: .4byte 0
+_LBL3_: .asciz "            " # string contents
+_LBL2_: .4byte 0 # string adress
+buff: .4byte 0
+_LBL5_: .asciz "Reading input..." # string contents
+_LBL4_: .4byte 0 # string adress
+_LBL7_: .asciz "Got: " # string contents
+_LBL6_: .4byte 0 # string adress
+_LBL9_: .asciz "Exit program and see return statement" # string contents
+_LBL8_: .4byte 0 # string adress
 _TEMP32_0_: .4byte 0
+_TEMP32_1_: .4byte 0
 
 _kernel_entry:
 mov %eax, %esp
@@ -36,72 +43,53 @@ mov _stack_d2_, %eax
 lea %ecx, _LBL1_ # 2step - load into register
 mov _LBL0_, %ecx # 2step - load into destination
 mov %ecx, _LBL0_ # 2step - load into register
-mov arr, %ecx # 2step - load into destination
+mov str, %ecx # 2step - load into destination
+lea %ecx, _LBL3_ # 2step - load into register
+mov _LBL2_, %ecx # 2step - load into destination
+mov %ecx, _LBL2_ # 2step - load into register
+mov buff, %ecx # 2step - load into destination
+lea %ecx, _LBL5_ # 2step - load into register
+mov _LBL4_, %ecx # 2step - load into destination
+lea %ecx, _LBL7_ # 2step - load into register
+mov _LBL6_, %ecx # 2step - load into destination
+lea %ecx, _LBL9_ # 2step - load into register
+mov _LBL8_, %ecx # 2step - load into destination
 
 _shift_stack_left_
 call main
 _shift_stack_right_
 hlt
 
-printThirdLetter:
-_shift_stack_right_ # enter argument stack
-pop %eax # pop argument
-mov _printThirdLetter_a_, %eax # load into corresponding variable
-push %ebx
-xor %edx, %edx
-xor %ebx, %ebx
-mov %edx, 2
-mov %ebx, _printThirdLetter_a_
-mov %cl, [%ebx + %edx*1]
-mov _TEMP8_0_, %cl
-pop %ebx
-xor %ecx, %ecx
-mov %cl, _TEMP8_0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call put_char
-_shift_stack_right_
-call new_line
-_shift_stack_left_ # enter call stack
-ret
-modifyString:
-_shift_stack_right_ # enter argument stack
-pop %eax # pop argument
-mov _modifyString_a_, %eax # load into corresponding variable
-push %ebx
-push %eax
-xor %edx, %edx
-mov %edx, 1
-mov %ebx, _modifyString_a_
-mov %eax, %edx
-mov %ecx, 1
-mul %ecx
-add %ebx, %eax
-mov %al, 121
-mov [%ebx], %al
-pop %eax
-pop %ebx
-_shift_stack_left_ # enter call stack
-ret
 main:
 _shift_stack_right_ # enter argument stack
-mov %ecx, arr # 2step - load into register
+xor %ecx, %ecx
+mov %ecx, _LBL4_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call put_string
+_shift_stack_right_
+call new_line
+mov %ecx, buff # 2step - load into register
 mov _TEMP32_0_, %ecx # 2step - load into destination
 xor %ecx, %ecx
 mov %ecx, _TEMP32_0_ # load parameter into register
 push %ecx # push to argument stack
-_shift_stack_left_
-call printThirdLetter
-_shift_stack_right_
-mov %ecx, arr # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
 xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
+mov %ecx, 0 # load parameter into register
+push %ecx # push to argument stack
+xor %ecx, %ecx
+mov %ecx, 10 # load parameter into register
 push %ecx # push to argument stack
 _shift_stack_left_
-call modifyString
+call program_get_in_bytes
 _shift_stack_right_
-mov %ecx, arr # 2step - load into register
+xor %ecx, %ecx
+mov %ecx, _LBL6_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call put_string
+_shift_stack_right_
+mov %ecx, buff # 2step - load into register
 mov _TEMP32_0_, %ecx # 2step - load into destination
 xor %ecx, %ecx
 mov %ecx, _TEMP32_0_ # load parameter into register
@@ -110,5 +98,31 @@ _shift_stack_left_
 call put_string
 _shift_stack_right_
 call new_line
+xor %ecx, %ecx
+mov %ecx, _LBL8_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call put_string
+_shift_stack_right_
+call new_line
+mov %ecx, str # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+xor %ecx, %ecx
+mov %ecx, _TEMP32_0_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call slen
+_shift_stack_right_
+mov %ecx, str # 2step - load into register
+mov _TEMP32_1_, %ecx # 2step - load into destination
+xor %ecx, %ecx
+mov %ecx, _TEMP32_1_ # load parameter into register
+push %ecx # push to argument stack
+xor %ecx, %ecx
+mov %ecx, _return_i32_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call program_return
+_shift_stack_right_
 _shift_stack_left_ # enter call stack
 ret
