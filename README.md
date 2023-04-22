@@ -23,6 +23,8 @@ Note: this is not a tutorial
     - Example: in directory "ham" type "node main.js programs/ex3.txt"
 - Follow instructions presented at the end of succesful compilation
 
+# Docs
+
 ## Typing
 `HAM` offers several types for those who wish to use them. Variables who have been assigned a type cannot be reassigned a new type, and are locked to that type. Types are prefixed with `@`
 
