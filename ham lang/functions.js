@@ -6,16 +6,20 @@ global.userFunctions = {
     put_char: { autoReturn: true, returnType: types.i32, parameters: { _: types.i8 } },
     put_string: { autoReturn: true, returnType: types.i32, parameters: { _: types.string } },
     getc: { autoReturn: true, returnType: types.i8, parameters: {} },
-    gets: { autoReturn: true, returnType: types.i32, parameters: { _: types.string } },
+    gets: { autoReturn: true, returnType: types.string, parameters: { _: types.string } },
     geti: { autoReturn: true, returnType: types.i32, parameters: {} },
     _str_concat_: { autoReturn: true, returnType: types.string, parameters: { a: types.string, b: types.string } },
     slen: { autoReturn: true, returnType: types.i32, parameters: { a: types.string } },
-    sequals: { autoReturn: true, returnType: types.i8, parameters: { a: types.string, b:types.string } }
+    sequals: { autoReturn: true, returnType: types.i8, parameters: { a: types.string, b: types.string } },
+    program_return: { autoReturn: true, returnType: types.i8, parameters: { a: types.i32, b: types.i32 } }
 }
+global.eolActions = [] // do all this at the end of each line
 global.userFunctionArr = []
 global.inFunction = false
 global.functionLocals = {}
-
+global.cmpKeyWords = [
+    'is'
+]
 global.tempLabels = {
     "8": 0,
     "16": 0,
@@ -40,6 +44,10 @@ global.dynamicFunctions = {
             case JSON.stringify(types.i8):
                 return "put_char"
         }
+    },
+    "println": function(type) {
+        eolActions.push(`call new_line`)
+        return this.print(type)
     }
 }
 /* #region  Compiler Functions */
@@ -64,13 +72,11 @@ function warning(e, line, word) {
     console.error(`\x1b[33m ***[WARNING]*** \x1b[0m [line ${line + 2}:${word}]`, e)
 }
 
-function nameFromType(type)
-{
+function nameFromType(type) {
     var rt;
     Object.entries(types).forEach(x => {
         //console.log(JSON.stringify(x[1]),JSON.stringify(type), JSON.stringify(x[1]) == JSON.stringify(type))
-        if(JSON.stringify(x[1]) == JSON.stringify(type))
-        {
+        if (JSON.stringify(x[1]) == JSON.stringify(type)) {
             rt = x[0]
         }
     })
@@ -96,8 +102,8 @@ function generateAutoLabel() {
     return "_LBL" + autoLabel++ + "_";
 }
 
-function tempLabel(bits,pointer = false) {
-    if(pointer) bits = 32
+function tempLabel(bits, pointer = false) {
+    if (pointer) bits = 32
     bits = String(bits)
     var str = `_TEMP${bits}_${tempLabels[bits]++}_`;
     variableList[str] = { bits, pointer }
@@ -195,20 +201,19 @@ function declareFunction(line) {
         parameters,
         unknownReturnType
     }
-    bracketStack.push({ type: "function", data: {fname, unknownReturnType} })
+    bracketStack.push({ type: "function", data: { fname, unknownReturnType } })
 }
 
 function mostRecentFunction() {
     var name = userFunctionArr.pop()
     //console.log(name)
-    return {name, data: userFunctions[name]}
+    return { name, data: userFunctions[name] }
 }
 
 function funcReturn(data = "", type = types.i32) {
     var inf_all = mostRecentFunction()
     var inf = inf_all.data
-    if(inf.unknownReturnType)
-    {
+    if (inf.unknownReturnType) {
         inf.returnType = type
         userFunctions[inf_all.name].returnType = type
     }
@@ -357,19 +362,18 @@ function createVariable(name, type, value) {
 
     //console.log("TYPE", type)
     var t = JSON.stringify(type)
-        asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
-        variableList[name] = JSON.parse(t)
-        if (value != null) setVariable(name, value, !inFunction) // BROKEN FIX HERE IF BROKEN 123 QWERTY
+    asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
+    variableList[name] = JSON.parse(t)
+    if (value != null) setVariable(name, value, !inFunction) // BROKEN FIX HERE IF BROKEN 123 QWERTY
 }
 
-function allocateArray(type, data)
-{
+function allocateArray(type, data) {
     var lbl = generateAutoLabel();
     var name_ = generateAutoLabel();
 
     asm.data.push(`${lbl}: ${type2Asm(type)} ${data.join("")} # array data`)
     asm.data.push(`${name_}: .4byte 0 # array pointer`)                                 // name: .4byte 0
-    twoStepLoad({ destination: name_, source: lbl, writeToInit: true, indirect: true, })  
+    twoStepLoad({ destination: name_, source: lbl, writeToInit: true, indirect: true, })
     return name_
 }
 
@@ -507,8 +511,7 @@ function performOnVar(operation, name, type) {
 
 }
 
-function storeAs32(source, type)
-{
+function storeAs32(source, type) {
     var lbl = tempLabel(32)
     var fmt1 = formatRegisterObj('d', type)
     asm.text.push(
@@ -530,19 +533,28 @@ function changetype(variable, newtype) {
         //console.log(variableList)
     }
 }
-
-function createIfStatement(o1, o1_type,cmp,o2, o2_type)
+function createIfStatement(value)
 {
+    var data = {
+        escape: generateAutoLabel(), // escape from this if
+    }
 
+    asm.text.push(
+        `cmpb ${value}, 0 # if - check comparison`,
+        `jne ${data.escape} # if - escape if not true`
+    )
 
-    if(JSON.stringify(o1_type) != JSON.stringify(o2_type))
-    {
-        if(strictmode)
+    return data
+}
+/*
+function createIfStatement(o1, o1_type, cmp, o2, o2_type) {
+    if (JSON.stringify(o1_type) != JSON.stringify(o2_type)) {
+        if (strictmode)
             error(`[STRICT] Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
         else
             warning(`Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
     }
-    
+
     var lbl1 = storeAs32(o1, o1_type)
     var lbl2 = storeAs32(o2, o2_type)
 
@@ -554,14 +566,31 @@ function createIfStatement(o1, o1_type,cmp,o2, o2_type)
     asm.text.push(
         `// note: maybe we should have push ecx and edx here? Possible source of error...`,
         `mov %ecx, ${lbl1} # if - load first value`,
-        `mov %edx, ${lbl2} # if - load first value`,
+        `mov %edx, ${lbl2} # if - load first value`
+    )
+
+    if (JSON.stringify(o1_type) == JSON.stringify(types.i32)) {
+        asm.text.push(
+            `push %ecx`,
+            `push %edx`,
+            `_shift_stack_left_`,
+            `call sequals`,
+            `_shift_stack_right_`,
+            `cmpb _return_i8_, 0`,
+            `jne ${data.escape} # if - if not what we want then escape`,
+            `// if - begin if statement `
+        )
+    } else {
+    asm.text.push(
         `cmp %ecx, %edx`,
         `jne ${data.escape} # if - if not what we want then escape`,
         `// if - begin if statement `
     )
+    }
 
     return data
 }
+*/
 /* #endregion */
 
 module.exports = {

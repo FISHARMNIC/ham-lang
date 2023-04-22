@@ -1,0 +1,6 @@
+function main;
+    if @i32 "a" is @i32 "a";
+            print("hello");
+    close;
+    print("bye");
+close;

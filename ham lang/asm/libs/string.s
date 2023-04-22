@@ -1,9 +1,9 @@
 .section .text
 
 slen:
+    pusha
     _shift_stack_right_
     pop %eax
-    push %ecx
     mov %ecx, %eax # ecx will hold base
     dec %eax
     slen.l:
@@ -11,49 +11,56 @@ slen:
         cmpb [%eax], 0
         jne slen.l
     sub %eax, %ecx
-    pop %ecx
     mov _return_i32_, %eax
     _shift_stack_left_
+    popa
     ret
 
 sequals:
     pusha
     _shift_stack_right_
-    pop %eax
-    pop %ebx
-    mov %ecx, %eax # eax will be overwritten by strlen
+    pop %eax # string 1
+    pop %ebx # string 2
 
-    _shift_stack_left_
     push %eax
+    _shift_stack_left_
+    call slen # call with str1
     _shift_stack_right_
 
-    call slen # call with str1
-    mov %edx, %eax # edx holds len1
+    mov %edx, _return_i32_ # edx holds len1
     
-    xor %eax, %eax
-    mov %eax, %ebx
+    push %ebx
+    _shift_stack_left_
     call slen #  call with str2
+    _shift_stack_right_
 
-    sub %eax, %edx # cmp lengths
+    mov %ecx, _return_i32_ # ecx holds len2
+
+    sub %ecx, %edx # cmp lengths
     jnz strcmp.exit
 
-    # strings are now in %ebx and %ecx
+    dec %eax
     dec %ebx
-    dec %ecx
+    # quickly whipped up for testing, make this code better haha
     strcmp.l:
+        inc %eax
         inc %ebx
-        inc %ecx
 
-        mov %al, [%ebx] # avoid over reference
-        cmp %al, 0
-        jz strcmp.exit # finished string
-        sub %al, [%ecx]
+        mov %cl, [%ebx] # char at string 2
+        cmp %cl, 0
+        jz strcmp.true # finished string
+        sub %cl, [%eax] # char at string 1
         jz strcmp.l
+
+    jmp strcmp.exit
+
+    strcmp.true:
+    movb _return_i8_, 0
+    _shift_stack_left_
+    popa
+    ret
     strcmp.exit:
-    mov %bl, %al
-    xor %eax, %eax
-    mov %al, %bl
-    mov _return_i8_, %eax 
+    mov _return_i8_, %cl 
     _shift_stack_left_ 
     popa
     ret  

@@ -1,11 +1,15 @@
 /*
 todo:
-finish classlikes functions like str.print not returning how they should
-add array support for parameters (cant acces parameter[2] because only using unformatted type)
-add setting arrays, when using equal sign if ther is "]" before then know you are setting array
-ex5 not working (does not print string after gets, and gets is broken)
-IMPORTANT add global equals so like ("str" == "str") or (123 == 456)
-IMPORTANT add else statement (easy)
+see warnign on file del, casting not permitted in if statements
+finish other comparison statements
+else not working (see file 6)
+IMPORTANT if statements need to jump to end after running (in case there is if else)
+change return to write to file instead
+    - write second function called program_return_file
+    - this function replaces the word "PASS" with "FILE"
+    - qemuhandler.js reads file instead and writes to file
+add file input
+note: if weird qemu bugs change memory size in run.sh
 */
 
 global.asm = {
@@ -46,6 +50,7 @@ var code = String(fs.readFileSync(String(process.argv[2])))
 
 code = code.replace(/\n/g, "").split(/;/g)
 
+var setArray = [false];
 var lineNum = 0;
 var wordNum = 0;
 
@@ -74,6 +79,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         var word_offset = n => lineContents[wordNum + n]
 
         // Main area
+
+
         if (word[0] == '"') // string : "hello"
         {
             var addr = functions.declareString({ contents: word })
@@ -105,28 +112,45 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             var type = lastType()
             var vname = word_offset(-1)
             var value = word_offset(1)
+
+            if(vname == ']')
+            {
+                vname = lineContents[0];
+            }
+
             // if we have already created a variable
             if (functions.checkVariableExists(vname)) {
                 var variable_type = functions.getVariableType(vname)
-                if (JSON.stringify(type) != JSON.stringify(variable_type)) {
-                    // have to reassign type
-                    if (JSON.stringify(variable_type) != JSON.stringify(types.i32) && JSON.stringify(variable_type) != JSON.stringify(types.string)) {
-                        functions.warning(`reassigning declared type to smaller type: ${JSON.stringify(variable_type)} as ${JSON.stringify(type)}`, lineNum, wordNum)
-                    }
-                    if (!strictmode) {
-                        functions.setVariableAndCheckLocal(vname, value)
-                        functions.changetype(vname, type)
+                
+                if (word_offset(-1) == "]") { // setting array
+                    
+                    setArray = [true, value, type];
+                    console.log("hi", lineContents, word_offset(-1))
+
+                    // dont break to run the last part
+                }
+                else {
+                    if (JSON.stringify(type) != JSON.stringify(variable_type)) {
+                        // have to reassign type
+                        if (JSON.stringify(variable_type) != JSON.stringify(types.i32) && JSON.stringify(variable_type) != JSON.stringify(types.string)) {
+                            functions.warning(`reassigning declared type to smaller type: ${JSON.stringify(variable_type)} as ${JSON.stringify(type)}`, lineNum, wordNum)
+                        }
+                        if (!strictmode) {
+                            functions.setVariableAndCheckLocal(vname, value)
+                            functions.changetype(vname, type)
+                        } else {
+                            functions.error(`[STRICT] unable to cast ${JSON.stringify(variable_type)} to ${JSON.stringify(type)}`, lineNum, wordNum)
+                        }
                     } else {
-                        functions.error(`[STRICT] unable to cast ${JSON.stringify(variable_type)} to ${JSON.stringify(type)}`, lineNum, wordNum)
+                        functions.setVariableAndCheckLocal(vname, value)
                     }
-                } else {
-                    functions.setVariableAndCheckLocal(vname, value)
+                    break; // set the varibale, skip to the next line
                 }
             }
             else {
                 functions.createVariable(vname, type, value)
+                break; // set the varibale, skip to the next line
             }
-            break; // set the varibale, skip to the next line
         }
         else if (word == ':') {
             // FIX CANNOT USE POINTER AS IF like repeat i to i8:str
@@ -200,60 +224,6 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             // support like repeat 1 down 10 or repeat 1 to 10
             asm.text.push(lbl + ":")
         }
-        else if (word == 'if') {
-            var t1 = lastType()
-            var t2 = lastType()
-            var data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
-            bracketStack.push({type: "if", data})
-        
-            /*
-            cmp o1, o2
-            jme lbl_esc
-            lbl: // if
-                print(hi)
-                jmp final_escape
-            lbl_esc: // else
-            cmp o1, o2
-            je
-
-            if 
-                stuff
-            close
-            skip to close 2 <- 
-            else if 
-                stuff
-            close 
-
-            if 
-                stuff
-            close
-            if
-                stuff
-            close 
-            */
-        }
-        else if(word == "elif")
-        {
-            // finish this
-            var t1 = lastType()
-            var t2 = lastType()
-
-            var exit = functions.generateAutoLabel()
-            asm.text.push(`jmp ${exit} # elif - exit from if statement if it was completed`)
-            var data = {type: "elif"}
-            data.data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
-            data.data.elexit = exit
-            bracketStack.push(data)
-            /*
-            if 
-                stuff
-            close
-            skip to close 2 <- 
-            else if 
-                stuff
-            close 
-            */
-        }
         else if (word == 'function') {
             //console.log("riofrpeijforjioeiojijeoigije")
             functions.declareFunction(lineContents);
@@ -271,8 +241,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                     `ret`
                 )
                 functionLocals = {}
-                if(data.unknownReturnType)
-                {
+                if (data.unknownReturnType) {
                     data.fname // HERE INHERIT FROM LAST RETURN
                 }
             }
@@ -287,18 +256,22 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                     `jl ${data.lbl}`
                 )
             }
-            else if (type == "if")
-            {
+            else if (type == "if") {
                 asm.text.push(
-                    `// if - exit if statement`,
+                    `# if - exit if statement`,
                     data.escape + ": # if - where to escape if statement")
             }
-            else if (type == "elif")
-            {
+            else if (type == "elif") {
                 asm.text.push(
-                    `// elif - exit if statement`,
+                    `# elif - exit if statement`,
                     data.escape + ": # if - where to escape if statement",
                     data.elexit + ": # elif - where to escape if statement"
+                )
+            }
+            else if (type == "else") {
+                asm.text.push(
+                    `// else - exit if statement`,
+                    data.exit + ": # else - escape whole if block"
                 )
             }
         }
@@ -373,25 +346,48 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             var possvar = word_offset(-1);
             if (functions.checkVariableExists(possvar)) // array index access: bob[1]
             {
-                // HERE ADD LOCAL SUPPORT
+                var isLocal = Object.keys(functionLocals).includes(functions.formatFunctionLocal(possvar))
                 var type = functions.getVariableType(possvar)
                 var lbl = functions.tempLabel(type.bits)
+                if (isLocal) possvar = functions.formatFunctionLocal(possvar);
                 // base + offset * segment
                 var offsetType = functions.formatRegisterObj('d', lastType())
-                asm.text.push(
-                    `push %ebx`,
-                    `xor %edx, %edx`,
-                    `xor %ebx, %ebx`,
-                    `mov ${offsetType}, ${word_offset(1)}`,
-                    `mov ${functions.formatRegisterObj('b', type)}, ${possvar}`,
-                    `mov ${functions.formatRegisterObj('c', type)}, [%ebx + ${offsetType}*${type.bits/8}]`,
-                    `mov ${lbl}, ${functions.formatRegisterObj('c', type)}`,
-                    `pop %ebx`,
-                )
-                lineContents.splice(wordNum-- - 1, 4, lbl)
-                var t = JSON.parse(JSON.stringify(type))
-                t.pointer = false // load type but remove pointer 
-                recentTypes.push(t)
+                console.log("hi", lineContents);
+                if (setArray[0]) { // [do it, value, type]
+                    setArray[0] = true;
+
+                    asm.text.push(
+                        `push %ebx`,
+                        `push %eax`,
+                        `xor %edx, %edx`,
+                        `mov ${offsetType}, ${word_offset(1)}`,
+                        `mov %ebx, ${possvar}`,
+                        `mov %eax, ${offsetType}`,
+                        `mov %ecx, ${type.bits / 8}`,
+                        `mul %ecx`,
+                        `add %ebx, %eax`, // load index,
+                        `mov ${functions.formatRegisterObj('a', setArray[2])}, ${setArray[1]}`,
+                        `mov [%ebx], ${functions.formatRegisterObj('a', setArray[2])}`,
+                        `pop %eax`,
+                        `pop %ebx`,
+                    )
+                    break;
+                } else {
+                    asm.text.push(
+                        `push %ebx`,
+                        `xor %edx, %edx`,
+                        `xor %ebx, %ebx`,
+                        `mov ${offsetType}, ${word_offset(1)}`,
+                        `mov %ebx, ${possvar}`,
+                        `mov ${functions.formatRegister('c', type)}, [%ebx + ${offsetType}*${type.bits / 8}]`,
+                        `mov ${lbl}, ${functions.formatRegister('c', type)}`,
+                        `pop %ebx`,
+                    )
+                    lineContents.splice(wordNum-- - 1, 4, lbl)
+                    var t = JSON.parse(JSON.stringify(type))
+                    t.pointer = false // load type but remove pointer 
+                    recentTypes.push(t)
+                }
             } else { // inline array init: [1,2,3]
                 var index = wordNum + 1
                 var build = []
@@ -405,12 +401,141 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 //console.log(variableList)
             }
         }
-        else if (word == "__asm__")
-        {
+        else if (word == "__asm__") {
             asm.text.push(code[lineNum].substring(0, code[lineNum].length - 7) + " # -- user inserted ASM --");
             break;
         }
-        
+
+        if (cmpKeyWords.includes(word_offset(2))) {
+            console.log("BEFORE", lineContents)
+            if(Object.keys(types).includes(word) && word_offset(-1) == '@')
+            {
+                // HERE WHY NOT WORKING
+                var addr = functions.castSize(word_offset(1), types[word])
+                console.log("ADDR", addr)
+                lineContents.splice(wordNum - 1, 3, addr)
+                recentTypes.push(JSON.parse(JSON.stringify(types[word])))
+            }
+            console.log("AFTER", lineContents)
+
+            var o1_type = lastType()
+            var o2_type = lastType()
+
+            console.log(o1_type, o2_type)
+
+            var o1 = word_offset(1)
+            var o2 = word_offset(3)
+            var cmp = word_offset(2)
+
+            if (JSON.stringify(o1_type) != JSON.stringify(o2_type)) {
+                if (strictmode)
+                    functions.error(`[STRICT] Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
+                else
+                    functions.warning(`Comparing unequal types: \n${JSON.stringify(o1_type)}\n == with == \n${JSON.stringify(o2_type)}`, lineNum, wordNum)
+            }
+
+            var lbl1 = functions.storeAs32(o1, o1_type)
+            var lbl2 = functions.storeAs32(o2, o2_type)
+
+            var ret = functions.tempLabel(8)
+            asm.text.push(
+                `// note: maybe we should have push ecx and edx here? Possible source of error...`,
+                `mov %ecx, ${lbl1} # if - load first value`,
+                `mov %edx, ${lbl2} # if - load first value`
+            )
+
+            if (JSON.stringify(o1_type) == JSON.stringify(types.string)) {
+                asm.text.push(
+                    `push %ecx`,
+                    `push %edx`,
+                    `_shift_stack_left_`,
+                    `call sequals`,
+                    `_shift_stack_right_`,
+                    `mov %cl, _return_i8_`,
+                    `mov ${ret}, %cl`,
+                )
+            } else {
+                asm.text.push(
+                    `sub %ecx, %edx`,
+                    `mov ${ret}, %cl`
+                )
+            }
+            //console.log(lineContents)
+            lineContents.splice(wordNum + 1, 3, ret)
+            recentTypes.push(types.i8)
+
+            //console.log(lineContents)
+        }
+
+        if (word == 'if') {
+            //var t1 = lastType()
+            //var t2 = lastType()
+            // var data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
+            var data = functions.createIfStatement(word_offset(1))
+            bracketStack.push({ type: "if", data })
+
+            /*
+            cmp o1, o2
+            jme lbl_esc
+            lbl: // if
+                print(hi)
+                jmp final_escape
+            lbl_esc: // else
+            cmp o1, o2
+            je
+
+            if 
+                stuff
+            close
+            skip to close 2 <- 
+            else if 
+                stuff
+            close 
+
+            if 
+                stuff
+            close
+            if
+                stuff
+            close 
+            */
+        }
+        else if (word == "elif") {
+            // finish this
+            var t1 = lastType()
+            var t2 = lastType()
+
+            var exit = functions.generateAutoLabel()
+            asm.text.push(`jmp ${exit} # elif - exit from if statement if it was completed`)
+            var data = { type: "elif" }
+            data.data = functions.createIfStatement(word_offset(1), t1, word_offset(2), word_offset(3), t2)
+            data.data.elexit = exit
+            bracketStack.push(data)
+            /*
+            if 
+                stuff
+            close 1
+            skip to close 2 <- 
+            else if 
+                stuff
+            close 2
+            skip to close 3
+            else 
+                stuff
+            close 3
+            */
+        }
+        else if (word == "else") {
+            var t1 = lastType()
+            var t2 = lastType()
+
+            var exit = functions.generateAutoLabel()
+            asm.text.push(`jmp ${exit} # else - exit from if statement if it was completed`)
+            var data = { exit }
+            bracketStack.push({ type: "else", data })
+        }
+
+
         /* #region  method test */
         /*
         // else if (word_offset(-1) == '.') { // class method call
@@ -432,6 +557,9 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         */
         /* #endregion */
     }
+
+    asm.text.push(...eolActions)
+    eolActions = []
 }
 
 // Create all the temp variables we ever used
@@ -449,7 +577,16 @@ var out = formatAsm(asm.data, asm.init, asm.text)
 var compilePath = "asm/out/main.s"
 fs.writeFileSync(compilePath, out)
 
-console.log(`\x1b[32m --- Compiled Successfully into "${compilePath}" ---\x1b[0m`)
+console.log(
+`\x1b[32m 
+    --- Compiled Successfully into "${compilePath}" ---
+  Next steps:
+  1. cd into "run"
+  2. (For MacOS) Enter LimaVM [https://github.com/lima-vm/lima]
+  3. run "./assemble.sh" to assemble and link the code
+  4. Exit LimaVM
+  5. run "./run.sh" to run the code
+\x1b[0m`)
 // asm.data.forEach(x=>console.log(x))
 // console.log("#======init======")
 // asm.init.forEach(x=>console.log(x))

@@ -9,27 +9,24 @@ _stack_d2_: .long 0
 _return_i8_: .byte 0
 _return_i16_: .2byte 0
 _return_i32_: .4byte 0
+_return_string_: .4byte 0
 
 _return_void_: .byte 0
 
 .include "libs/shift.s"
 .include "libs/string.s"
 .include "libs/io.s"
+.include "libs/progret.s"
 
 .section .data
 
 
-_LBL1_: .asciz "     " # string contents
+_LBL1_: .asciz "hello" # string contents
 _LBL0_: .4byte 0 # string adress
-str: .4byte 0
-_LBL2_: .4byte 1,2,3 # array data
-_LBL3_: .4byte 0 # array pointer
 arr: .4byte 0
-pointer: .4byte 0
-pointerbob: .4byte 0
-_LBL5_: .asciz "heljlo" # string contents
-_LBL4_: .4byte 0 # string adress
-_TEMP16_0_: .2byte 0
+_printThirdLetter_a_: .4byte 0
+_modifyString_a_: .4byte 0
+_TEMP8_0_: .byte 0
 _TEMP32_0_: .4byte 0
 
 _kernel_entry:
@@ -39,69 +36,79 @@ mov _stack_d2_, %eax
 lea %ecx, _LBL1_ # 2step - load into register
 mov _LBL0_, %ecx # 2step - load into destination
 mov %ecx, _LBL0_ # 2step - load into register
-mov str, %ecx # 2step - load into destination
-lea %ecx, _LBL2_ # 2step - load into register
-mov _LBL3_, %ecx # 2step - load into destination
-mov %ecx, _LBL3_ # 2step - load into register
 mov arr, %ecx # 2step - load into destination
-lea %ecx, _LBL5_ # 2step - load into register
-mov _LBL4_, %ecx # 2step - load into destination
 
 _shift_stack_left_
 call main
 _shift_stack_right_
 hlt
 
-main:
+printThirdLetter:
 _shift_stack_right_ # enter argument stack
-xor %ecx, %ecx
-mov %ecx, 123 # load into register
-mov _TEMP16_0_, %ecx # cast into specified type
-mov %ecx, _TEMP16_0_ # 2step - load into register
-mov pointer, %ecx # 2step - load into destination
-mov %ecx, pointer # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
-mov %ecx, _TEMP32_0_ # 2step - load into register
-mov pointerbob, %ecx # 2step - load into destination
+pop %eax # pop argument
+mov _printThirdLetter_a_, %eax # load into corresponding variable
 push %ebx
 xor %edx, %edx
 xor %ebx, %ebx
-mov %edx, 1
-mov %ebx, arr
-mov %ecx, [%ebx + %edx*4]
-mov _TEMP32_0_, %ecx
+mov %edx, 2
+mov %ebx, _printThirdLetter_a_
+mov %cl, [%ebx + %edx*1]
+mov _TEMP8_0_, %cl
 pop %ebx
 xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call put_int
-_shift_stack_right_
-mov %ecx, str # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
-xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call gets
-_shift_stack_right_
-mov %ecx, str # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
-xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
-push %ecx # push to argument stack
-xor %ecx, %ecx
-mov %ecx, _LBL4_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call sequals
-_shift_stack_right_
-xor %ecx, %ecx
-mov %cl, _return_i8_ # load parameter into register
+mov %cl, _TEMP8_0_ # load parameter into register
 push %ecx # push to argument stack
 _shift_stack_left_
 call put_char
 _shift_stack_right_
-    mov %eax, str  # -- user inserted ASM --
+call new_line
+_shift_stack_left_ # enter call stack
+ret
+modifyString:
+_shift_stack_right_ # enter argument stack
+pop %eax # pop argument
+mov _modifyString_a_, %eax # load into corresponding variable
+push %ebx
+push %eax
+xor %edx, %edx
+mov %edx, 1
+mov %ebx, _modifyString_a_
+mov %eax, %edx
+mov %ecx, 1
+mul %ecx
+add %ebx, %eax
+mov %al, 121
+mov [%ebx], %al
+pop %eax
+pop %ebx
+_shift_stack_left_ # enter call stack
+ret
+main:
+_shift_stack_right_ # enter argument stack
+mov %ecx, arr # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+xor %ecx, %ecx
+mov %ecx, _TEMP32_0_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call printThirdLetter
+_shift_stack_right_
+mov %ecx, arr # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+xor %ecx, %ecx
+mov %ecx, _TEMP32_0_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call modifyString
+_shift_stack_right_
+mov %ecx, arr # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+xor %ecx, %ecx
+mov %ecx, _TEMP32_0_ # load parameter into register
+push %ecx # push to argument stack
+_shift_stack_left_
+call put_string
+_shift_stack_right_
+call new_line
 _shift_stack_left_ # enter call stack
 ret

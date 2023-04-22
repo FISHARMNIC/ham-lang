@@ -108,6 +108,7 @@ reset_tty:
 
 # prints a number on the screen after reading it from the stack
 put_int:
+    pusha
     _shift_stack_right_
     pop %eax 
     
@@ -130,10 +131,12 @@ put_int:
     _pip_ret: 
     
     _shift_stack_left_
+    popa
     ret
 
 # prints a character on the screen after reading it from the stack
 put_char:
+    pusha
     _shift_stack_right_
     pop %ebx
     xor %eax, %eax
@@ -143,6 +146,7 @@ put_char:
     mov [%ebx], %ax # Move the character into the tty pointer
     addw _ttypos, 2 # Increment to the next character spot
     _shift_stack_left_
+    popa
     ret
 
 
@@ -228,8 +232,8 @@ read_keyboard:
     ret
 
 getc:
+    pusha
     _shift_stack_right_
-    push %ebx
 
     _getc.ls:
     call read_keyboard
@@ -251,29 +255,26 @@ getc:
     
     pop %ebx
     _shift_stack_left_
+    popa
     ret
 
 gets:
+    pusha
     _shift_stack_right_
     pop %ebx # string addr
     push %ebx # return addr too
-    push %eax
         _gets_entry:
-            pusha
             _shift_stack_left_
             call getc
             _shift_stack_right_
-            popa
 
             mov %al, _return_i8_
             mov [%ebx], %al # move into pointer
             
-            pusha
             push %eax
             _shift_stack_left_
             call put_char
             _shift_stack_right_
-            popa
 
             inc %ebx
             cmpb keyboard_out, KEY_BACKSPACE
@@ -283,10 +284,11 @@ gets:
             jne _gets_entry
         dec %ebx
         movb [%ebx], 0
-        pop _return_i32_
+        pop _return_string_
          
-        _shift_stack_left_
-        ret
+     _shift_stack_left_
+    popa
+    ret
 
         _gets_DEL:
             dec %ebx # back to type char
@@ -295,6 +297,9 @@ gets:
             jmp _gets_RET
 
 geti:
+    pusha
+    _shift_stack_right_
+
     xor %ebx, %ebx # stores number
     xor %ecx, %ecx # incase overflow
     call getc
@@ -315,6 +320,9 @@ geti:
         jmp _gi_loop
     _gi_exit:
     mov _return_i32_, %ebx
+
+    _shift_stack_left_
+    popa
     ret
     
 /* #endregion */

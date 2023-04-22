@@ -1,10 +1,15 @@
-// NOT WORKING class-likes;
-str = "hello";
-secstr = "world";
-num = 123;
+arr = "hello";
+
+<@string a> @void function printThirdLetter;
+    println(a[2]);
+close;
+
+<@string a> @void function modifyString;
+    a[1] = 'y';
+close;
 
 function main;
-    put_string(str.cat(secstr));
-    str.print();
-    num.print();
+    printThirdLetter(arr);
+    modifyString(arr);
+    println(arr);
 close;

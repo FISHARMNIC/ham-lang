@@ -11,12 +11,14 @@ _stack_d2_: .long 0
 _return_i8_: .byte 0
 _return_i16_: .2byte 0
 _return_i32_: .4byte 0
+_return_string_: .4byte 0
 
 _return_void_: .byte 0
 
 .include "libs/shift.s"
 .include "libs/string.s"
 .include "libs/io.s"
+.include "libs/progret.s"
 
 .section .data
 

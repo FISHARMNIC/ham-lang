@@ -1,0 +1,5 @@
+str = "hello, this is a file return test";
+
+function main;
+    program_return(str,slen(str));
+close;
