@@ -12,6 +12,17 @@
 
 Note: this is not a tutorial
 
+# How to run:
+- Made for MacOS (will work on linux with some tweaks in the shell files)
+- Requires:
+    - LimaVM debian (for MacOS)
+    - xorriso (on Lima)
+    - gnu binutils (on Lima)
+    - NodeJS
+- Run "node main.js file" in the same directory as main.js
+    - Example: in directory "ham" type "node main.js programs/ex3.txt"
+- Follow instructions presented at the end of succesful compilation
+
 ## Typing
 `HAM` offers several types for those who wish to use them. Variables who have been assigned a type cannot be reassigned a new type, and are locked to that type. Types are prefixed with `@`
 
