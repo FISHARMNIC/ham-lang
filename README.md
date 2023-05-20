@@ -177,7 +177,7 @@ str <- 'y'; // becomes yay;
 ```
 
 ## Passing and returning from the program
-Due to the the fact that HAM is run in a virtual machine, file/data passing to and from is very limited (at least for now, I have plans to re-work the file passing). To return text/data from the program to print as output use `program_return(buffer, length)`. This will print text after the program is finished. To return data in the format of a binary file us `program_return_file(buffer, length)`. Only one return statement is allowed and any more after that will overwrite the data. To read input, first run `program_prepare_input()` then run `program_get_in_bytes(buffer, read offset, number of bytes)`. NOt ethat currently the read functions 
+Due to the the fact that HAM is run in a virtual machine, file/data passing to and from is very limited (at least for now, I have plans to re-work the file passing). To return text/data from the program to print as output use `program_return(buffer, length)`. This will print text after the program is finished. To return data in the format of a binary file us `program_return_file(buffer, length)`. Only one return statement is allowed and any more after that will overwrite the data. To read input, first run `program_prepare_input()` then run `program_get_in_bytes(buffer, read offset, number of bytes)`. Note that currently the input functions drasticallly slow the programs down, I also plan to fix this.
 
 ## Class-likes
 
