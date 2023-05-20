@@ -11,17 +11,15 @@
     - Relax your braincells, and let `HAM` do all the typing for you
     - No need to worry about type conversions, mismatches, etc.
 
-Note: this is not a tutorial
-
 # How to run:
-- Made for MacOS (will work on linux with some tweaks in the shell files)
+- Made for MacOS (will work on linux)
 - Requires:
     - LimaVM debian (for MacOS)
-    - xorriso (on Lima)
-    - gnu binutils (on Lima)
+    - xorriso (if mac on Lima)
+    - gnu binutils (if mac on Lima)
     - NodeJS
 - Run "node main.js file" in the same directory as main.js
-    - Example: in directory "ham" type "node main.js programs/ex3.txt"
+    - Example: in directory "ham lang" type "node main.js programs/ex3.txt"
 - Follow instructions presented at the end of succesful compilation
 
 # Docs
@@ -68,7 +66,7 @@ put_int(123 + 456); // won't work;
 ```
 Math is evuated from left to right, and accumulated the answer as it goes. This means no order of operation or parenthesis (hoping to fix this soon). The math accumulator can also be clamped to a certain size. By default it is 32 bits. This can be done by adding a type right after the opening bracket.
 ```C
-put_int({@i8 255 + 1}); // will print 0;
+put_int({i8 255 + 1}); // will print 0;
 ``` 
 ## Loops & Control Flow
 
