@@ -1,0 +1,8 @@
+arr = [530,531,532];
+
+function main;
+    i = 0;
+    repeat i to 3;
+        print(arr[i]);
+    close;
+close;

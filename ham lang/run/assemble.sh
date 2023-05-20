@@ -1,9 +1,5 @@
-cd ../
-
-echo "===== Compilation Started ====="
-node main.js
-
 echo "=====  Assembler Started  ====="
+cd ../
 
 mkdir /tmp/lima/bin
 
@@ -29,7 +25,7 @@ if (as --32 out/main.s -o /tmp/lima/bin/kernel.o) ; then
 
         #run the qemu
         qemu-system-x86_64 -cdrom /tmp/lima/bin/MyOS.iso
-        echo -e "\e[33m (if unsing lima exit lima) and run './run.sh' \e[0m"
+        echo -e "\e[33m (if unsing lima exit lima) and run './run.sh' or './run-input.sh' if using input \e[0m"
         
     fi
 fi

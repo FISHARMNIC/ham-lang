@@ -1,6 +1,6 @@
 .section .data
 program_in_ready: .byte 0
-.comm program_in_file_buffer, 100, 1 # 4 kb test
+.comm program_in_file_buffer, 4000, 1 # 4 kb test
 .section .text
 program_return:
     pusha
@@ -54,7 +54,7 @@ program_get_in_bytes:
     pop %ecx # number of bytes
     pop %ebx # read offset
     pop %eax # write buffer
-    mov %edx, 10000000 # read buffer
+    lea %edx, program_in_file_buffer # read buffer
 
     add %edx, %ebx # free ebx, now edx is read + offset 
     cmpb program_in_ready, 1
@@ -68,9 +68,21 @@ program_get_in_bytes:
         inc %edx # inc read
         sub %ecx, 1
         cmp %ecx, 0
-        jle _pgib.loopstrt
+        jg _pgib.loopstrt
 
     movb [%eax], 0
     _shift_stack_left_
     popa
     ret
+
+program_prepare_input:
+    lea %eax, program_in_file_buffer
+    
+    movb [0], 'A'
+    movb [1], 'D'
+    movb [2], 'D'
+    movb [3], 'R'
+    mov [4], %eax
+
+    ret
+

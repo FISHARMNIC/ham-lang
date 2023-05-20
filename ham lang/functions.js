@@ -14,7 +14,8 @@ global.userFunctions = {
     program_return: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, size: types.i32 } },
     program_return_file: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, size: types.i32 } },
     program_get_in_bytes: { autoReturn: true, returnType: types.i8, parameters: { buffer: types.i32, read_offset: types.i32, bytes: types.i32 } },
-    program_wait_in_ready: {autoReturn: true, returnType: types.i8, parameters: {} }
+    program_wait_in_ready: { autoReturn: true, returnType: types.i8, parameters: {} },
+    program_prepare_input: { autoReturn: true, returnType: types.i8, parameters: {} }
 }
 global.eolActions = [] // do all this at the end of each line
 global.userFunctionArr = []
@@ -48,7 +49,7 @@ global.dynamicFunctions = {
                 return "put_char"
         }
     },
-    "println": function(type) {
+    "println": function (type) {
         eolActions.push(`call new_line`)
         return this.print(type)
     }
@@ -114,9 +115,8 @@ function tempLabel(bits, pointer = false) {
     return str;
 }
 
-function declareFunction(line) {
+function declareFunction(line, forwardDec = false) {
     inFunction = true
-    //console.log("FUNCTION NSCREATE", line)
     var ftype = 0
     /*     parameters         return
     0 :     none           un-typed/none
@@ -124,13 +124,16 @@ function declareFunction(line) {
     2 :     typed             typed
     3 :     none              typed
     */
-    if (line[0] == "<") {
+   var _offset = 0;
+   if(forwardDec) _offset = 1;
+
+    if (line[0 + _offset] == "<") {
         ftype = 1
-        if (line[1] == '@') {
+        if (line[1 + _offset] == '@') {
             ftype = 2
         }
     }
-    else if (line[0] == '@') {
+    else if (line[0 + _offset] == '@') {
         ftype = 3
     }
 
@@ -144,11 +147,11 @@ function declareFunction(line) {
 
     if (ftype == 0) {
         unknownReturnType = true;
-        fname = line[1];
+        fname = line[1 + _offset];
     }
     else if (ftype == 1) {
         unknownReturnType = true;
-        var index = 1
+        var index = 1 + _offset
         fname = line[line.indexOf(">") + 2];
         // create the variables
         while (line[index] != '>') {
@@ -164,14 +167,16 @@ function declareFunction(line) {
 
     }
     else if (ftype == 2) {
-        var index = 1
+        var index = 1 + _offset
         fname = line[line.indexOf(">") + 4];
         while (line[index] != '>') {
             if (line[index] == '@') {
                 var type = types[line[index + 1]]
                 var fmt = `_${fname}_${line[index + 2]}_`
-                createVariable(fmt, type, null)
-                functionLocals[fmt] = type
+                if (!forwardDec) {
+                    createVariable(fmt, type, null)
+                    functionLocals[fmt] = type
+                }
                 parameters[fmt] = type
                 //console.log("::", fmt)
             }
@@ -181,30 +186,41 @@ function declareFunction(line) {
         //console.log("--", fname, returnType)
     }
     else if (ftype == 3) {
-
+        returnType = types[line[1 + _offset]]
+        fname = line[2 + _offset]
     }
 
-    asm.text.push(
-        `${fname}:`,
-        `_shift_stack_right_ # enter argument stack`,
-    )
-    // pop into parameters
-    Object.entries(parameters).reverse().forEach(x => {
-        var name = x[0];
-        var type = x[1];
+    if (forwardDec) {
+        userFunctions[fname] = {
+            autoReturn, // for end of function return something
+            returnType,
+            parameters,
+            unknownReturnType
+        }
+    }
+    else {
         asm.text.push(
-            `pop ${formatRegister('a', 32)} # pop argument`,
-            `mov ${name}, ${formatRegisterObj('a', type)} # load into corresponding variable`
+            `${fname}:`,
+            `_shift_stack_right_ # enter argument stack`,
         )
-    })
-    userFunctionArr.push(fname)
-    userFunctions[fname] = {
-        autoReturn, // for end of function return something
-        returnType,
-        parameters,
-        unknownReturnType
+        // pop into parameters
+        Object.entries(parameters).reverse().forEach(x => {
+            var name = x[0];
+            var type = x[1];
+            asm.text.push(
+                `pop ${formatRegister('a', 32)} # pop argument`,
+                `mov ${name}, ${formatRegisterObj('a', type)} # load into corresponding variable`
+            )
+        })
+        userFunctionArr.push(fname)
+        userFunctions[fname] = {
+            autoReturn, // for end of function return something
+            returnType,
+            parameters,
+            unknownReturnType
+        }
+        bracketStack.push({ type: "function", data: { fname, unknownReturnType } })
     }
-    bracketStack.push({ type: "function", data: { fname, unknownReturnType } })
 }
 
 function mostRecentFunction() {
@@ -384,8 +400,10 @@ function math(arr) {
     var scanPos = 0;
     // typed math
     var mathBits = 32;
+    var typed = 0
     if (arr[0] == 'i8' || arr[0] == 'i16' || arr[0] == 'i32') {
         mathBits = parseInt(arr[0].substring(1))
+        typed = 1
         scanPos++
     }
 
@@ -404,7 +422,7 @@ function math(arr) {
         `mov ${formatRegisterObj('a', rtype(arr[scanPos], { bits: mathBits, pointer: false }))}, ${arr[scanPos]}`) // load first value into register a
 
     scanPos += 1
-
+    var reps = scanPos - 2;
     while (scanPos < arr.length - 1) {
         var item = {
             current: arr[scanPos],
@@ -472,8 +490,8 @@ function math(arr) {
     }
     var lbl = tempLabel(mathBits)
     asm.text.push(`mov ${lbl}, ${regA}`, `popa`)
-    replaceIndex(lbl)
     recentTypes.push({ bits: mathBits, pointer: false })
+    return {lbl, rep: scanPos - reps + 2 + typed}
 }
 
 function rtype(source, ogtype) {
@@ -536,8 +554,7 @@ function changetype(variable, newtype) {
         //console.log(variableList)
     }
 }
-function createIfStatement(value)
-{
+function createIfStatement(value) {
     var data = {
         escape: generateAutoLabel(), // escape from this if
     }

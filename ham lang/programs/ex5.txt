@@ -1,4 +1,4 @@
-str = "     ";
+str = "             ";
 arr = [1,2,3];
 
 function main;
@@ -7,6 +7,6 @@ function main;
     print(arr[2]);
     gets(str);
     print(str);
-    put_int(sequals(str, "hello"));
+    put_int(str is "hello");
     print("done");
 close;

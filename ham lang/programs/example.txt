@@ -18,11 +18,11 @@ function main;
     typed_math = {i8 132 + number_small};
     regular_math = {543 + number_auto};
     // 123 + 456 + 21 = 600;
-    put_int(sum(sum(number_small,number_auto),21));
+    println(sum(sum(number_small,number_auto),21));
     
     // loop;
     i = 0;
     repeat i to 10;
-        put_int(i);
+        println(i);
     close;
 close;

@@ -10,6 +10,8 @@ change return to write to file instead
     - qemuhandler.js reads file instead and writes to file
 add file input
 note: if weird qemu bugs change memory size in run.sh
+add more loop types
+add function pointer types that stil store the return type like @f32 or @f16
 */
 
 global.asm = {
@@ -208,8 +210,9 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 build.push(word_offset(i))
             }
 
-            functions.math(build)
-
+            var out = functions.math(build)
+            lineContents.splice(wordNum, out.rep, out.lbl)
+            console.log(lineContents)
         }
         else if (word == 'return') {
             var p = (lineContents.length > wordNum + 1) ? word_offset(1) : ""
@@ -225,8 +228,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             asm.text.push(lbl + ":")
         }
         else if (word == 'function') {
-            //console.log("riofrpeijforjioeiojijeoigije")
-            functions.declareFunction(lineContents);
+
+            functions.declareFunction(lineContents, lineContents[0] == "forward");
             break;
         }
         else if (word == 'close') //(lineContents.join("") == ']') // exiting funciton
@@ -342,6 +345,9 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         else if (word == "strict") {
             strictmode = true;
         }
+        else if (word == "nostrict") {
+            strictmode = false;
+        }
         else if (word == '[') {
             var possvar = word_offset(-1);
             if (functions.checkVariableExists(possvar)) // array index access: bob[1]
@@ -352,8 +358,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 if (isLocal) possvar = functions.formatFunctionLocal(possvar);
                 // base + offset * segment
                 var offsetType = functions.formatRegisterObj('d', lastType())
-                console.log("hi", lineContents);
-                if (setArray[0]) { // [do it, value, type]
+                if (setArray[0]) { // set? [do it, value, type]
                     setArray[0] = true;
 
                     asm.text.push(
@@ -372,15 +377,15 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                         `pop %ebx`,
                     )
                     break;
-                } else {
+                } else { // read
                     asm.text.push(
                         `push %ebx`,
                         `xor %edx, %edx`,
                         `xor %ebx, %ebx`,
                         `mov ${offsetType}, ${word_offset(1)}`,
                         `mov %ebx, ${possvar}`,
-                        `mov ${functions.formatRegister('c', type)}, [%ebx + ${offsetType}*${type.bits / 8}]`,
-                        `mov ${lbl}, ${functions.formatRegister('c', type)}`,
+                        `mov ${functions.formatRegisterObj('c', type)}, [%ebx + ${offsetType}*${type.bits / 8}]`,
+                        `mov ${lbl}, ${functions.formatRegisterObj('c', type)}`,
                         `pop %ebx`,
                     )
                     lineContents.splice(wordNum-- - 1, 4, lbl)

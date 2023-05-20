@@ -3,6 +3,7 @@ buff = "            ";
 
 function main;
     println("Reading input...");
+    program_prepare_input();
     program_get_in_bytes(buff, 0, 10);
     print("Got: ");
     println(buff);
