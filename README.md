@@ -219,8 +219,15 @@ function main;
 close;
 ```
 
-# Changelog
+# Changelog  
+Note: some of this was done after the date I uploaded  
 
-2/21/23: First version uploaded featuring variables and math, along with static and dynamic typing, and untyped functions
+2/21/23: First version uploaded featuring variables and math, along with static and dynamic typing, and untyped functions. Assembler + bootloader not included. Mostly theoretical at this point, probably a lot of bugs.  
 
-2/22/23: 
+2/22/23: Fixed function parameters, added casting
+
+3/23/23: Added bootloader and assembler, along with libraries and classlikes
+
+-- deadspot --  
+
+5/20/23: Added function prototypes and fixed issue with arrays being stuck read as 8bit
