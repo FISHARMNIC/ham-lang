@@ -100,7 +100,7 @@ else;
     print("Sorry, you can't drive :(");
 close;
 ```
-If statements in `HAM` alter in functionality across different types. For numbers, their value will be compared. For pointer, their contents will be compared. Inorder to compare the address of strings/pointers cast them to `i32` first.
+`If` statements in `HAM` alter in functionality across different types. For numbers, their value will be compared. For pointer, their contents will be compared. Inorder to compare the address of strings/pointers cast them to `i32` first.
 
 ```C
 // compares numbers;
