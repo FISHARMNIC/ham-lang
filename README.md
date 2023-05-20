@@ -93,7 +93,7 @@ age = 10;
 if bob moreq 16;
     print("You can get a driving license!");
 close;
-else if bob more 15;
+elif bob more 15;
     print("You can get a driving permit...");
 close;
 else;
