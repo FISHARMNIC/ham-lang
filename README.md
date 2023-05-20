@@ -100,7 +100,7 @@ else;
     print("Sorry, you can't drive :(");
 close;
 ```
-`If` statements in `HAM` alter in functionality across different types. For numbers, their value will be compared. For pointer, their contents will be compared. Inorder to compare the address of strings/pointers cast them to `i32` first.
+`If` statements in `HAM` alter in functionality across different types. For numbers, their value will be compared. For pointers, their contents will be compared. Inorder to compare the address of strings/pointers cast them to `i32` first.
 
 ```C
 // compares numbers;
@@ -158,7 +158,7 @@ close;
 ```
 ##### Dynamic Functions
 
-Inorder to smoothly handle dynamic typing, certain functions adapt to their inherited type inorder to produce the expected result. For example, the `print` function will print the correct value regardless of the type. This is a sort of macro that is done at compile time. If statements also have this functionality
+Inorder to smoothly handle dynamic typing, certain functions adapt to their inherited type inorder to produce the expected result. For example, the `print` function will print the correct value regardless of the type. This is a sort of macro that is done at compile time. If statements also have this functionality, along with `println`.
 ##### Calling Functions
 
 Calling functions is done with the standard `name(parameter,parameter,...)`
@@ -177,9 +177,8 @@ str <- 'y'; // becomes yay;
 ```
 
 ## Passing and returning from the program
-Due to the the fact that HAM is run in a virtual machine, file/data passing to and from is very limited.  
-To return text/data from the program to print as output use `program_return(buffer, length)`. This will print text after the program is finished. To return data in the format of a binary file us `program_return_file(buffer, length)`.
-Only one return statement is allowed and any more after that will overwrite the data.
+Due to the the fact that HAM is run in a virtual machine, file/data passing to and from is very limited (at least for now, I have plans to re-work the file passing). To return text/data from the program to print as output use `program_return(buffer, length)`. This will print text after the program is finished. To return data in the format of a binary file us `program_return_file(buffer, length)`. Only one return statement is allowed and any more after that will overwrite the data. To read input, first run `program_prepare_input()` then run `program_get_in_bytes(buffer, read offset, number of bytes)`. NOt ethat currently the read functions 
+
 ## Class-likes
 
 **DEPRECATED: see dynamic functions instead**
