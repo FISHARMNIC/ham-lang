@@ -228,4 +228,4 @@ Note: some of this was done after the date I uploaded
 
 -- deadspot --  
 
-5/20/23: Added function prototypes and fixed issue with arrays being stuck read as 8bit
+5/20/23: Added function prototypes, fixed issue with arrays being stuck read as 8bit, implemented new type of function, added library inclusion, creating run script that does everything easily
