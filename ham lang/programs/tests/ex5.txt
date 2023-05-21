@@ -1,0 +1,12 @@
+str = "             ";
+arr = [1,2,3];
+
+function main;
+    pointer = @p16 123;
+    pointerbob = pointer;
+    print(arr[2]);
+    gets(str);
+    print(str);
+    put_int(str is "hello");
+    print("done");
+close;

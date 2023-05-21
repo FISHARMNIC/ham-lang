@@ -1,0 +1,5 @@
+libs/graphics.ham included;
+
+function main;
+    gfx_string(5,1,"hello");
+close;

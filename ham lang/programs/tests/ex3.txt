@@ -1,0 +1,15 @@
+arr = "hello";
+
+<@string a> @void function printThirdLetter;
+    println(a[2]);
+close;
+
+<@string a> @void function modifyString;
+    a[1] = 'y';
+close;
+
+function main;
+    printThirdLetter(arr);
+    modifyString(arr);
+    println(arr);
+close;

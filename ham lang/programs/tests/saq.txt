@@ -1,0 +1,8 @@
+funciton callasp;
+    print("hi");
+close;
+
+function main;
+    test = @p32 callasp;
+    test();
+close;

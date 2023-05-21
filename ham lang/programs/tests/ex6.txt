@@ -1,0 +1,7 @@
+@i8 function bob;
+    return 'A';
+close;
+
+function main;
+    print(bob());
+close;

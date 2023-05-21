@@ -1,0 +1,20 @@
+<@i16 px, @i16 py, @i8 ch> @i8 function gfx_char;
+    push _ttypos __asm__;
+    _ttypos = {py * 80 + px + 753665};
+    put_char(ch);
+    pop _ttypos __asm__;
+close;
+
+<@i16 px, @i16 py, @string str> @i8 function gfx_string;
+    push _ttypos __asm__;
+    _ttypos = {py * 80 + px + 753665};
+    put_string(str);
+    pop _ttypos __asm__;
+close;
+
+<@i16 px, @i16 py, @i32 num> @i8 function gfx_int;
+    push _ttypos __asm__;
+    _ttypos = {py * 80 + px + 753665};
+    put_int(num);
+    pop _ttypos __asm__;
+close;
