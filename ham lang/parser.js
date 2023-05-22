@@ -1,6 +1,6 @@
 const fs = require("fs");
 
-var symbols = "(){}[]*!@#$%^&*()`~+,/<>?:\\=. \0"
+var symbols = "()-{}[]*!@#$%^&*()`~+,/<>?:\\=. \0"
 
 function parse(_this, colon = true) {
     var build = ""
@@ -66,4 +66,5 @@ function parse(_this, colon = true) {
     return parsed
 }
 
+console.log(parse("i-2"))
 module.exports = { parse }

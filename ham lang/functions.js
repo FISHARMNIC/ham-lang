@@ -54,9 +54,22 @@ global.dynamicFunctions = {
         return this.print(type)
     }
 }
+
+global.fnMacros = {
+    "charBuffer": function (size) {
+        return allocateData(types.string, size);
+    },
+    "shortBuffer": function (size) {
+        return allocateData(types.p16, size);
+    },
+    "longBuffer": function (size) {
+        return allocateData(types.p32, size);
+    },
+}
 /* #region  Compiler Functions */
 
 function typeToBits(b) {
+    if(b == null) error("Error", 0,0 )
     if (b.pointer) return 32
     return b.bits
 }
@@ -275,7 +288,7 @@ function pushParameter(fname, parameterIndex, value) {
 
 /* #region  Memory Functions */
 
-function twoStepLoad({ destination, source, indirect = false, type = { bits: 32, pointer: false }, writeToInit = false }) {
+function twoStepLoad({ destination, source, indirect = false, type = { bits: 32, pointer: false }, writeToInit = false , writeToData = false}) {
     // moves a source to a destination, can be register, label, etc.
     type = JSON.parse(JSON.stringify(type))
     if (type.pointer) type.bits = 32
@@ -286,7 +299,10 @@ function twoStepLoad({ destination, source, indirect = false, type = { bits: 32,
         `mov ${destination}, ${formattedReg} # 2step - load into destination`                        // mov destination, %edx
     ]
 
+    console.log("LOADING:", destination, source, writeToInit, writeToData)
+
     if (writeToInit) asm.init.push(...out)
+    else if (writeToData) asm.init.push(...out)
     else asm.text.push(...out)
 }
 
@@ -360,9 +376,9 @@ function castSize(source, typeInfo, addToRecentTypes = true) {
     return lbl
 }
 
-function setVariable(destination, source, writeToInit = false, pointer = false) {
+function setVariable(destination, source, writeToInit = false, pointer = false, writeToData = false) {
     //var b = variableList[destination].pointer ? 32 : variableList[destination].bits
-    twoStepLoad({ destination, source, type: variableList[destination], writeToInit, indirect: pointer })
+    twoStepLoad({ destination, source, type: variableList[destination], writeToInit, indirect: pointer, writeToData })
 }
 
 function setVariableAndCheckLocal(destination, source, writeToInit = false) {
@@ -379,12 +395,12 @@ function setVariableAndCheckLocal(destination, source, writeToInit = false) {
 }
 
 function createVariable(name, type, value) {
-
-    //console.log("TYPE", type)
+    // HEREEERREEEEE BUG FIX MAY 22
+    console.log("TYPE", name, type, value)
     var t = JSON.stringify(type)
     asm.data.push(`${name}: ${type2Asm(type)} 0`) // variable: .type 0
     variableList[name] = JSON.parse(t)
-    if (value != null) setVariable(name, value, !inFunction) // BROKEN FIX HERE IF BROKEN 123 QWERTY
+    if (value != null) setVariable(name, value, !inFunction, false, value.includes("_TEMP") || name.includes("_TEMP")) // BROKEN FIX HERE IF BROKEN 123 QWERTY
 }
 
 function allocateArray(type, data) {
@@ -395,6 +411,17 @@ function allocateArray(type, data) {
     asm.data.push(`${name_}: .4byte 0 # array pointer`)                                 // name: .4byte 0
     twoStepLoad({ destination: name_, source: lbl, writeToInit: true, indirect: true, })
     return name_
+}
+
+function allocateData(type, size) {
+    var name_ = generateAutoLabel();
+    var tlbl = generateAutoLabel();;
+    asm.data.push(`.comm ${name_}, ${size}, ${type.bits / 8}`)
+    asm.data.push(`${tlbl}: .4byte 0 # array pointer`)                                 // name: .4byte 0
+    twoStepLoad({ destination: tlbl, source: name_, writeToInit: true, indirect: true, })
+    variableList[tlbl] = type
+    recentTypes.push(type)
+    return tlbl
 }
 
 function math(arr) {

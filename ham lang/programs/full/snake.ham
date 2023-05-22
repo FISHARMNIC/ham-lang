@@ -1,0 +1,33 @@
+libs/graphics.ham included;
+libs/system.ham included;
+
+snakelen = 3;
+
+snakeX = 100 longBuffer;
+snakeY = 100 longBuffer;
+
+headX = 0;
+headY = 0;
+
+function loop;
+    loop_pos = 0;
+
+    snakeX[snakelen] = headX;
+    snakeY[snakelen] = headY;
+    put_int(snakeX[snakelen]);
+
+close;
+
+function main;
+    loop_pos = 0;
+    repeat loop_pos to snakelen;
+        snakeX[loop_pos] = 0;
+        snakeY[loop_pos] = 0;
+    close;
+
+    forever;
+        loop();
+        headX = {headX + 1};
+        sys_delay(1000);
+    close;
+close;

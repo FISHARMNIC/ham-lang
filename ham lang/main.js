@@ -13,6 +13,11 @@ note: if weird qemu bugs change memory size in run.sh
 add more loop types
 add function pointer types that stil store the return type like @f32 or @f16
 IMPORTANT something is very wrong with casting and comparing pointers, however the issue is only present when the left arugment is being casted
+gfx library not working
+IMPORTANT if adding for example 16 bit number in 32 bit math, it will read 32 bits
+add math parenthesis
+make automatic array length detection and reallocation
+IMPORTANT see buff.txt, something very wrong when compiled
 */
 
 global.asm = {
@@ -38,7 +43,7 @@ global.DoNotLoadVariable = [
     "repeat"
 ]
 global.lastReturnType = types.i32;
-
+global.filesIncluded = []
 const functions = require("./functions.js")
 const parser = require("./parser.js")
 const formatAsm = require("./asm.js")
@@ -117,17 +122,17 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             var vname = word_offset(-1)
             var value = word_offset(1)
 
-            if(vname == ']')
-            {
+            if (vname == ']') {
                 vname = lineContents[0];
             }
 
             // if we have already created a variable
             if (functions.checkVariableExists(vname)) {
+                console.log("exists:", vname, value)
                 var variable_type = functions.getVariableType(vname)
-                
+
                 if (word_offset(-1) == "]") { // setting array
-                    
+
                     setArray = [true, value, type];
                     console.log("hi", lineContents, word_offset(-1))
 
@@ -152,7 +157,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 }
             }
             else {
-                functions.createVariable(vname, type, value)
+                console.log("creating:", vname, value)
+                functions.createVariable(vname, type, value, )
                 break; // set the varibale, skip to the next line
             }
         }
@@ -190,8 +196,9 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         {
             var type = variableList[word]
             var lbl = functions.tempLabel(functions.typeToBits(type))
+            console.log("includes:", word, lbl)
             if (!DoNotLoadVariable.includes(word_offset(-1))) {
-                functions.twoStepLoad({ destination: lbl, source: word, type })
+                functions.twoStepLoad({ destination: lbl, source: word, type, writeToData: word.includes("_TEMP") || lbl.includes("_TEMP")})
                 replaceIndex(lbl)
             }
             recentTypes.push(type)
@@ -207,6 +214,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         }
         else if (word == '{') // Math equation
         {
+            //console.log("BEFORE:::", lineContents)
             var build = []
             for (var i = 1; word_offset(i) != '}'; i++) {
                 build.push(word_offset(i))
@@ -214,7 +222,7 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
 
             var out = functions.math(build)
             lineContents.splice(wordNum, out.rep, out.lbl)
-            console.log(lineContents)
+            //console.log("AFTER::::", lineContents)
         }
         else if (word == 'return') {
             var p = (lineContents.length > wordNum + 1) ? word_offset(1) : ""
@@ -233,6 +241,11 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
 
             functions.declareFunction(lineContents, lineContents[0] == "forward");
             break;
+        }
+        else if (word == 'forever') {
+            var label = functions.generateAutoLabel()
+            asm.text.push(label + ':')
+            bracketStack.push({ type: "forever", data: label })
         }
         else if (word == 'close') //(lineContents.join("") == ']') // exiting funciton
         {
@@ -255,11 +268,20 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                 var fmtreg = functions.formatRegisterObj('c', type)
                 var fmtreg2 = functions.formatRegisterObj('b', type)
                 //asm.text.push(`mov ${fmtreg}, ${data.counter}`)
-                functions.performOnVar("inc", data.counter, type)
-                asm.text.push(
-                    `cmp ${fmtreg}, ${data.end}`,
-                    `jl ${data.lbl}`
-                )
+                if (phrase == "to") {
+                    functions.performOnVar("inc", data.counter, type)
+                    asm.text.push(
+                        `cmp ${fmtreg}, ${data.end}`,
+                        `jl ${data.lbl}`
+                    )
+                }
+                else if (phrase == "down") {
+                    functions.performOnVar("dec", data.counter, type)
+                    asm.text.push(
+                        `cmp ${fmtreg}, ${data.end}`,
+                        `jg ${data.lbl}`
+                    )
+                }
             }
             else if (type == "if") {
                 asm.text.push(
@@ -279,6 +301,18 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                     data.exit + ": # else - escape whole if block"
                 )
             }
+            else if (type == "forever") {
+                asm.text.push("jmp " + data)
+            }
+        }
+        else if (Object.keys(fnMacros).includes(word)) // macros
+        {
+            //console.log("using:", lineContents.slice(wordNum - fnMacros[word].length, wordNum))
+            var out = fnMacros[word](lineContents.slice(wordNum - fnMacros[word].length, wordNum))
+            lineContents.splice(wordNum - fnMacros[word].length, fnMacros[word].length + 1, out)
+            console.log("Out: ", lineContents)
+            word++
+            //continue
         }
         else if (word_offset(1) == '(') // is function
         {
@@ -356,12 +390,13 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
             {
                 var isLocal = Object.keys(functionLocals).includes(functions.formatFunctionLocal(possvar))
                 var type = functions.getVariableType(possvar)
+                console.log("---TYPE:", type)
                 var lbl = functions.tempLabel(type.bits)
                 if (isLocal) possvar = functions.formatFunctionLocal(possvar);
                 // base + offset * segment
                 var offsetType = functions.formatRegisterObj('d', lastType())
                 if (setArray[0]) { // set? [do it, value, type]
-                    setArray[0] = true;
+                    setArray[0] = false;
 
                     asm.text.push(
                         `push %ebx`,
@@ -386,8 +421,8 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
                         `xor %ebx, %ebx`,
                         `mov ${offsetType}, ${word_offset(1)}`,
                         `mov %ebx, ${possvar}`,
-                        `mov ${functions.formatRegisterObj('c', type)}, [%ebx + ${offsetType}*${type.bits / 8}]`,
-                        `mov ${lbl}, ${functions.formatRegisterObj('c', type)}`,
+                        `mov ${functions.formatRegister('c', type.bits)}, [%ebx + ${offsetType}*${type.bits / 8}]`,
+                        `mov ${lbl}, ${functions.formatRegister('c', type.bits)}`,
                         `pop %ebx`,
                     )
                     lineContents.splice(wordNum-- - 1, 4, lbl)
@@ -414,15 +449,16 @@ for (lineNum = 0; lineNum < code.length; lineNum++) {
         }
         else if (word == "included") {
             var file = lineContents.slice(0, lineContents.length - 1).join("");
-            var fileout = String(fs.readFileSync(file)).replace(/\n/g, "").split(/;/g)
-            code.splice(lineNum, 1, ...fileout)
-            lineNum--
+            if (!filesIncluded.includes(file)) { // only include files once
+                var fileout = String(fs.readFileSync(file)).replace(/\n/g, "").split(/;/g)
+                code.splice(lineNum, 1, ...fileout)
+                lineNum--
+            }
             continue
         }
         if (cmpKeyWords.includes(word_offset(2))) {
             //console.log("BEFORE", lineContents)
-            if(Object.keys(types).includes(word) && word_offset(-1) == '@')
-            {
+            if (Object.keys(types).includes(word) && word_offset(-1) == '@') {
                 // HERE WHY NOT WORKING
                 var addr = functions.castSize(word_offset(1), types[word], false)
                 recentTypes.pop()
@@ -597,7 +633,7 @@ var compilePath = "asm/out/main.s"
 fs.writeFileSync(compilePath, out)
 
 console.log(
-`\x1b[32m 
+    `\x1b[32m 
     --- Compiled Successfully into "${compilePath}" ---
   Next steps:
   1. cd into "run"

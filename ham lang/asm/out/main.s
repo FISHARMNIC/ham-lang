@@ -21,158 +21,99 @@ _return_void_: .byte 0
 .section .data
 
 
-_gfx_char_px_: .2byte 0
-_gfx_char_py_: .2byte 0
-_gfx_char_ch_: .byte 0
-_gfx_string_px_: .2byte 0
-_gfx_string_py_: .2byte 0
-_gfx_string_str_: .4byte 0
-_gfx_int_px_: .2byte 0
-_gfx_int_py_: .2byte 0
-_gfx_int_num_: .4byte 0
-_LBL1_: .asciz "hello" # string contents
-_LBL0_: .4byte 0 # string adress
-_TEMP8_0_: .byte 0
-_TEMP16_0_: .2byte 0
-_TEMP16_1_: .2byte 0
+.comm _LBL0_, 100, 4
+_LBL1_: .4byte 0 # array pointer
+snakeX: .4byte 0
+.comm _LBL2_, 100, 4
+_LBL3_: .4byte 0 # array pointer
+snakeY: .4byte 0
+snakelen: .4byte 0
+headX: .4byte 0
+headY: .4byte 0
 _TEMP32_0_: .4byte 0
+_TEMP32_1_: .4byte 0
+_TEMP32_2_: .4byte 0
 
 _kernel_entry:
 mov %eax, %esp
 sub %eax, FRAME_OFFSET
 mov _stack_d2_, %eax
-lea %ecx, _LBL1_ # 2step - load into register
-mov _LBL0_, %ecx # 2step - load into destination
+lea %ecx, _LBL0_ # 2step - load into register
+mov _LBL1_, %ecx # 2step - load into destination
+mov %ecx, _LBL1_ # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+mov %ecx, _TEMP32_0_ # 2step - load into register
+mov snakeX, %ecx # 2step - load into destination
+lea %ecx, _LBL2_ # 2step - load into register
+mov _LBL3_, %ecx # 2step - load into destination
+mov %ecx, _LBL3_ # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+mov %ecx, _TEMP32_0_ # 2step - load into register
+mov snakeY, %ecx # 2step - load into destination
+mov %ecx, 3 # 2step - load into register
+mov snakelen, %ecx # 2step - load into destination
+mov %ecx, 0 # 2step - load into register
+mov headX, %ecx # 2step - load into destination
+mov %ecx, 0 # 2step - load into register
+mov headY, %ecx # 2step - load into destination
+mov %ecx, headX # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+mov %ecx, snakelen # 2step - load into register
+mov _TEMP32_1_, %ecx # 2step - load into destination
+mov %ecx, headY # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
+mov %ecx, snakelen # 2step - load into register
+mov _TEMP32_1_, %ecx # 2step - load into destination
+mov %ecx, snakelen # 2step - load into register
+mov _TEMP32_0_, %ecx # 2step - load into destination
 
 _shift_stack_left_
 call main
 _shift_stack_right_
 hlt
 
-gfx_char:
+main:
 _shift_stack_right_ # enter argument stack
-pop %eax # pop argument
-mov _gfx_char_ch_, %al # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_char_py_, %ax # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_char_px_, %ax # load into corresponding variable
-    push _ttypos  # -- user inserted ASM --
-mov %cx, _gfx_char_px_ # 2step - load into register
-mov _TEMP16_0_, %cx # 2step - load into destination
-mov %cx, _gfx_char_py_ # 2step - load into register
-mov _TEMP16_1_, %cx # 2step - load into destination
-pusha
-xor %eax, %eax
+push %ebx
+push %eax
+xor %edx, %edx
+mov %edx, _TEMP32_1_
+mov %ebx, snakeX
+mov %eax, %edx
+mov %ecx, 4
+mul %ecx
+add %ebx, %eax
+mov %eax, _TEMP32_0_
+mov [%ebx], %eax
+pop %eax
+pop %ebx
+push %ebx
+push %eax
+xor %edx, %edx
+mov %edx, _TEMP32_1_
+mov %ebx, snakeY
+mov %eax, %edx
+mov %ecx, 4
+mul %ecx
+add %ebx, %eax
+mov %eax, _TEMP32_0_
+mov [%ebx], %eax
+pop %eax
+pop %ebx
+push %ebx
+xor %edx, %edx
 xor %ebx, %ebx
+mov %edx, _TEMP32_0_
+mov %ebx, snakeX
+mov %ecx, [%ebx + %edx*4]
+mov _TEMP32_1_, %ecx
+pop %ebx
 xor %ecx, %ecx
-mov %ax, _TEMP16_1_
-mov %ebx, 80
-mul %ebx
-add %eax, _TEMP16_0_
-add %eax, 753665
-mov _TEMP32_0_, %eax
-popa
-mov %ecx, _TEMP32_0_ # 2step - load into register
-mov _ttypos, %ecx # 2step - load into destination
-mov %cl, _gfx_char_ch_ # 2step - load into register
-mov _TEMP8_0_, %cl # 2step - load into destination
-xor %ecx, %ecx
-mov %cl, _TEMP8_0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call put_char
-_shift_stack_right_
-    pop _ttypos  # -- user inserted ASM --
-_shift_stack_left_ # enter call stack
-ret
-gfx_string:
-_shift_stack_right_ # enter argument stack
-pop %eax # pop argument
-mov _gfx_string_str_, %eax # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_string_py_, %ax # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_string_px_, %ax # load into corresponding variable
-    push _ttypos  # -- user inserted ASM --
-mov %cx, _gfx_string_px_ # 2step - load into register
-mov _TEMP16_0_, %cx # 2step - load into destination
-mov %cx, _gfx_string_py_ # 2step - load into register
-mov _TEMP16_1_, %cx # 2step - load into destination
-pusha
-xor %eax, %eax
-xor %ebx, %ebx
-xor %ecx, %ecx
-mov %ax, _TEMP16_1_
-mov %ebx, 80
-mul %ebx
-add %eax, _TEMP16_0_
-add %eax, 753665
-mov _TEMP32_0_, %eax
-popa
-mov %ecx, _TEMP32_0_ # 2step - load into register
-mov _ttypos, %ecx # 2step - load into destination
-mov %ecx, _gfx_string_str_ # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
-xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call put_string
-_shift_stack_right_
-    pop _ttypos  # -- user inserted ASM --
-_shift_stack_left_ # enter call stack
-ret
-gfx_int:
-_shift_stack_right_ # enter argument stack
-pop %eax # pop argument
-mov _gfx_int_num_, %eax # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_int_py_, %ax # load into corresponding variable
-pop %eax # pop argument
-mov _gfx_int_px_, %ax # load into corresponding variable
-    push _ttypos  # -- user inserted ASM --
-mov %cx, _gfx_int_px_ # 2step - load into register
-mov _TEMP16_0_, %cx # 2step - load into destination
-mov %cx, _gfx_int_py_ # 2step - load into register
-mov _TEMP16_1_, %cx # 2step - load into destination
-pusha
-xor %eax, %eax
-xor %ebx, %ebx
-xor %ecx, %ecx
-mov %ax, _TEMP16_1_
-mov %ebx, 80
-mul %ebx
-add %eax, _TEMP16_0_
-add %eax, 753665
-mov _TEMP32_0_, %eax
-popa
-mov %ecx, _TEMP32_0_ # 2step - load into register
-mov _ttypos, %ecx # 2step - load into destination
-mov %ecx, _gfx_int_num_ # 2step - load into register
-mov _TEMP32_0_, %ecx # 2step - load into destination
-xor %ecx, %ecx
-mov %ecx, _TEMP32_0_ # load parameter into register
+mov %ecx, _TEMP32_1_ # load parameter into register
 push %ecx # push to argument stack
 _shift_stack_left_
 call put_int
 _shift_stack_right_
-    pop _ttypos  # -- user inserted ASM --
-_shift_stack_left_ # enter call stack
-ret
-main:
-_shift_stack_right_ # enter argument stack
-xor %ecx, %ecx
-mov %ecx, 5 # load parameter into register
-push %ecx # push to argument stack
-xor %ecx, %ecx
-mov %ecx, 1 # load parameter into register
-push %ecx # push to argument stack
-xor %ecx, %ecx
-mov %ecx, _LBL0_ # load parameter into register
-push %ecx # push to argument stack
-_shift_stack_left_
-call gfx_string
-_shift_stack_right_
+call new_line
 _shift_stack_left_ # enter call stack
 ret

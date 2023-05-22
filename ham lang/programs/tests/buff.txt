@@ -1,0 +1,13 @@
+snakeX = 100 longBuffer;
+snakeY = 100 longBuffer;
+
+snakelen = 3;
+
+headX = 0;
+headY = 0;
+
+function main;
+    snakeX[snakelen] = headX;
+    snakeY[snakelen] = headY;
+    println(snakeX[snakelen]);
+close;

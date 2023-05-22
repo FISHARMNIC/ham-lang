@@ -1,0 +1,7 @@
+<time> function sys_delay;
+    _sys_delay_i = 0;
+    time = {time * 1000};
+    repeat _sys_delay_i to time;
+        nop __asm__;
+    close;
+close;

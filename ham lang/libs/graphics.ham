@@ -1,20 +1,9 @@
-<@i16 px, @i16 py, @i8 ch> @i8 function gfx_char;
-    push _ttypos __asm__;
-    _ttypos = {py * 80 + px + 753665};
-    put_char(ch);
-    pop _ttypos __asm__;
-close;
+gfx_vga_adr = 753664;
+gfx_pixel_at = 0;
 
-<@i16 px, @i16 py, @string str> @i8 function gfx_string;
-    push _ttypos __asm__;
-    _ttypos = {py * 80 + px + 753665};
-    put_string(str);
-    pop _ttypos __asm__;
-close;
-
-<@i16 px, @i16 py, @i32 num> @i8 function gfx_int;
-    push _ttypos __asm__;
-    _ttypos = {py * 80 + px + 753665};
-    put_int(num);
-    pop _ttypos __asm__;
-close;
+<@i32 px, @i32 py, @i8 ch> @void function gfx_point;
+    px = {px * 2};
+    gfx_pixel_at = {py * 160 + gfx_vga_adr + px};
+    // 3480 is bg = 0 (black) fg = 15 (white) shifted left to allow first 8 bytes as char;
+    gfx_pixel_at <- {@i16 ch | 3840};
+close
