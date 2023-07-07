@@ -29,7 +29,7 @@
 
 ### Casting
 
-Casting in `HAM` is simply done by prefixing any form of data with a type. For example, `@i8 123` casts `123` to the type `i8`  .
+Casting in `HAM` is simply done by prefixing any form of data with an `@` symbol followed by the type. For example, `@i8 123` casts `123` to the type `i8`  .
 
 For each type there is a brief description followed by the C correspondent.
 
