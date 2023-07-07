@@ -53,7 +53,7 @@ greeting = "hello world!"; // new string variable;
 character = 'A'; // new character;
 number = 123; // number variable (i32);
 ```
-That being said, the type can be specificed via using a cast
+That being said, the type can be specificed via using a cast (see `casts`)
 ```C
 smallNumber = @i8 123; // character (i8);
 someString = @string 5000; // would normally be created as number;
