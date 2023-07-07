@@ -15,8 +15,8 @@
 - Made for MacOS (will work on linux)
 - Requires:
     - LimaVM debian (for MacOS)
-    - xorriso (if mac on Lima)
-    - gnu binutils (if mac on Lima)
+    - xorriso (If you are on mac, install on Lima)
+    - gnu binutils (If you are on mac, install on Lima)
     - NodeJS
 - Run "node main.js file" in the same directory as main.js
     - Example: in directory "ham lang" type "node main.js programs/ex3.txt"
