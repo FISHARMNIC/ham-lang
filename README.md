@@ -1,7 +1,7 @@
 # the HAM language <img src="https://github.com/FISHARMNIC/ham-lang/assets/73864341/48c69c6d-9094-4a13-afd5-34780b120624" width="30" height="30">
     
 ---
-## simplicity of `Python`, complexity of `C`, speed of `assembly`
+## simplicity of `Python`, complexity of `C`, speed of `Assembly`
 - **Hard As** (you) **Make** (it)
 - Fully compiled language, running standalone on x86 virtual machine, no boilerplate OS
     - Every library included is hand made in Assembly, including stdio, strings, etc. *Feel free to peak inside*
