@@ -8,7 +8,7 @@
     - Raw inline x86 assembly support
     - Build your own OS!
 - Dynamic typing by default
-    - Relax your braincells, and let `HAM` do all the typing for you
+    - Relax your braincells, and let `HAM` do all the hard work for you
     - No need to worry about type conversions, mismatches, etc.
 
 # How to run:
