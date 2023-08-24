@@ -4,7 +4,7 @@
 ## simplicity of `Python`, complexity of `C`, speed of `Assembly`
 - **Hard As** (you) **Make** (it)
 - Fully compiled language, running standalone on x86 virtual machine, no boilerplate OS
-    - Every library included is hand made in Assembly, including stdio, strings, etc. *Feel free to peak inside*
+    - Every library included is hand made in Assembly, including stdio, strings, etc.
     - Raw inline x86 assembly support
     - Build your own OS!
 - Dynamic typing by default
