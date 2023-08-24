@@ -90,10 +90,10 @@ close;
 Here is a valid example statement
 ```C
 age = 10;
-if bob moreq 16;
+if age moreq 16;
     print("You can get a driving license!");
 close;
-elif bob more 15;
+elif age more 15;
     print("You can get a driving permit...");
 close;
 else;
