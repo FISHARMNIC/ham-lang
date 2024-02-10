@@ -24,6 +24,10 @@
 
 # Docs
 
+[https://docs.google.com/document/d/1dvrnv1i9j71S5V8oIfRu-QUAKFk0uw6s5r6wOy7J6vY/edit?usp=sharing](link)
+
+# Some notes
+
 ## Typing
 `HAM` offers several types for those who wish to use them. Variables who have been assigned a type cannot be reassigned a new type, and are locked to that type. Types are prefixed with `@`
 
