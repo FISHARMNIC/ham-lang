@@ -1,5 +1,18 @@
 # the HAM language <img src="https://github.com/FISHARMNIC/ham-lang/assets/73864341/48c69c6d-9094-4a13-afd5-34780b120624" width="30" height="30">
-# Note: this is an old project, see [HAM`](https://github.com/FISHARMNIC/HAMprime) instead
+# Note: this is an old project, see [HAM`](https://github.com/FISHARMNIC/HAMprimeC2) instead
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
+---
 ---
 ## simplicity of `Python`, complexity of `C`, speed of `Assembly`
 - **Hard As** (you) **Make** (it)
